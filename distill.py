@@ -248,11 +248,19 @@ def generate_image_prompt(client, concept: str, context: str) -> str:
     return response.text
 
 
-def generate_image(client, prompt: str) -> bytes:
-    """Generiere Bild via Gemini API."""
+def generate_image(client, prompt: str, style_path: Path = None) -> bytes:
+    """Generiere Bild via Gemini API, optional mit Stil-Referenz."""
+    if style_path and style_path.exists():
+        # Mit Stil-Referenz
+        ref_part = load_image_as_part(style_path)
+        full_prompt = f"{prompt}\n\nIMPORTANT: Match the visual style, color palette, and aesthetic of the attached reference image."
+        contents = [ref_part, full_prompt]
+    else:
+        contents = [prompt]
+
     response = client.models.generate_content(
         model=config.MODEL_IMAGE,
-        contents=[prompt],
+        contents=contents,
         config=types.GenerateContentConfig(
             response_modalities=["Text", "Image"],
             image_config=types.ImageConfig(
@@ -261,6 +269,9 @@ def generate_image(client, prompt: str) -> bytes:
             )
         )
     )
+
+    if response is None or not hasattr(response, 'parts') or response.parts is None:
+        return None
 
     for part in response.parts:
         if part.inline_data is not None:
@@ -411,9 +422,20 @@ def generate_refined_visualization_prompt(spec: dict, analysis: dict) -> str:
     return base_prompt
 
 
-def visualize_knowledge(client, knowledge_document: str, source_name: str, refine: bool = True) -> list:
+def visualize_knowledge(client, knowledge_document: str, source_name: str, refine: bool = True, style: str = None) -> list:
     """Generiere Visualisierungen fuer ein Wissensdokument mit optionalem Refinement."""
     print("\nVisualisierung...")
+
+    # Stil-Referenz laden falls angegeben
+    style_path = None
+    if style:
+        style_path = Path("assets/styles") / f"{style}.png"
+        if style_path.exists():
+            print(f"  Stil: {style}")
+        else:
+            print(f"  Warnung: Stil '{style}' nicht gefunden, nutze Standard")
+            style_path = None
+
     print("  Waehle Konzepte zur Visualisierung...")
     concepts = select_visualization_concepts(client, knowledge_document)
 
@@ -439,7 +461,7 @@ def visualize_knowledge(client, knowledge_document: str, source_name: str, refin
         # Schritt 1: Generiere erstes Bild
         print(f"    [1/4] Generiere Bild v1...")
         image_prompt = generate_visualization_prompt(spec)
-        image_data = generate_image(client, image_prompt)
+        image_data = generate_image(client, image_prompt, style_path=style_path)
 
         if not image_data:
             print(f"    Fehler: Kein Bild generiert")
@@ -458,7 +480,7 @@ def visualize_knowledge(client, knowledge_document: str, source_name: str, refin
                 # Schritt 3: Regeneriere mit Feedback
                 print(f"    [3/4] Regeneriere mit {len(analysis.get('improvements', []))} Verbesserungen...")
                 refined_prompt = generate_refined_visualization_prompt(spec, analysis)
-                refined_image = generate_image(client, refined_prompt)
+                refined_image = generate_image(client, refined_prompt, style_path=style_path)
 
                 if refined_image:
                     image_data = refined_image
@@ -844,6 +866,7 @@ def main():
     parser.add_argument("--mode", type=str, choices=["multimodal", "text"], default="multimodal",
                         help="PDF-Modus: multimodal (mit Layout/Bildern) oder text (nur extrahierter Text)")
     parser.add_argument("--visualize", action="store_true", help="Automatisch 1-5 Konzepte visualisieren")
+    parser.add_argument("--style", type=str, help="Stil-Name aus assets/styles/ (z.B. kurzgesagt, scientific)")
 
     args = parser.parse_args()
 
@@ -893,7 +916,7 @@ def main():
 
     if args.visualize:
         # Neuer automatischer Visualisierungs-Workflow
-        results = visualize_knowledge(client, knowledge, source_name)
+        results = visualize_knowledge(client, knowledge, source_name, style=args.style)
         if results:
             print(f"\n{len(results)} Visualisierung(en) erstellt.")
         else:

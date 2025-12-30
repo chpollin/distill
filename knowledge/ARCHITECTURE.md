@@ -106,6 +106,7 @@ Options:
   --prompt PROMPT     Prompt-Variante (distill, distill_b, distill_c, distill_3p, distill_3pv)
   --mode MODE         PDF-Modus (multimodal, text)
   --visualize         Batch-Visualisierung (1-5 Bilder)
+  --style STYLE       Stil-Referenz aus assets/styles/ (kurzgesagt, scientific, conceptual, narrative)
 
 # Craft Mode (Einzelvisualisierung)
 python distill.py craft <concept> --context "..." --idea "..." [--ref <image>] [--auto]
@@ -133,6 +134,12 @@ distill/
 │   ├── visualize_analyze.md
 │   ├── visualize_describe.md
 │   └── craft_sketchpad.md      # Craft-Mode Sketchpad
+├── assets/
+│   └── styles/         # Stil-Referenzbilder
+│       ├── kurzgesagt.png
+│       ├── scientific.png
+│       ├── conceptual.png
+│       └── narrative.png
 ├── knowledge/          # Projektdokumentation (dieser Vault)
 ├── data/               # Input-Dateien (nicht versioniert)
 └── output/             # Generierte Outputs (nicht versioniert)

@@ -63,9 +63,14 @@ python distill.py output/final/paper.md --visualize
 
 # Kompletter Workflow: Extraktion + Visualisierung
 python distill.py data/paper.pdf --prompt distill_3pv --visualize
+
+# Mit Stil-Referenz (siehe assets/styles/)
+python distill.py data/paper.pdf --visualize --style kurzgesagt
 ```
 
 Generiert 1-5 didaktisch wertvolle Bilder mit strukturierten Begleittexten. Die Anzahl wird automatisch an die Komplexität des Papers angepasst.
+
+**Verfügbare Stile:** `kurzgesagt`, `scientific`, `conceptual`, `narrative` (siehe [assets/styles/](assets/styles/))
 
 ### Craft Mode (Interaktiv)
 
