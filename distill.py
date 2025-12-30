@@ -321,8 +321,9 @@ def visualize_knowledge(client, knowledge_document: str, source_name: str) -> li
         print(f"    {i}. {spec.get('concept', 'Unbekannt')}")
 
     results = []
-    final_dir = Path(config.PATHS["output"]) / "final"
-    final_dir.mkdir(parents=True, exist_ok=True)
+    # Visualisierungen im Paper-Unterordner
+    paper_dir = Path(config.PATHS["output"]) / "final" / source_name
+    paper_dir.mkdir(parents=True, exist_ok=True)
 
     for i, spec in enumerate(concepts, 1):
         concept_name = spec.get("concept", f"concept_{i}")
@@ -335,7 +336,7 @@ def visualize_knowledge(client, knowledge_document: str, source_name: str) -> li
         image_data = generate_image(client, image_prompt)
 
         if image_data:
-            image_path = final_dir / f"{source_name}_{safe_name}.png"
+            image_path = paper_dir / f"{safe_name}.png"
             image_path.write_bytes(image_data)
             print(f"    Bild gespeichert: {image_path}")
 
@@ -368,13 +369,13 @@ def get_next_version(paper_dir: Path, prompt_name: str) -> int:
 
 
 def save_knowledge(content: str, source_name: str, prompt_name: str = "distill") -> Path:
-    """Speichere Wissensdokument. Finale 3pv-Dokumente in separatem Ordner."""
+    """Speichere Wissensdokument. Finale 3pv-Dokumente in Paper-Unterordner."""
     if prompt_name == "distill_3pv":
-        # Finale Dokumente direkt in output/final/
-        final_dir = Path(config.PATHS["output"]) / "final"
-        final_dir.mkdir(parents=True, exist_ok=True)
+        # Finale Dokumente in output/final/<paper_name>/
+        paper_dir = Path(config.PATHS["output"]) / "final" / source_name
+        paper_dir.mkdir(parents=True, exist_ok=True)
         filename = f"{source_name}.md"
-        output_path = final_dir / filename
+        output_path = paper_dir / filename
     else:
         # Andere Varianten in Paper-Unterordner mit Versionierung
         paper_dir = Path(config.PATHS["output"]) / "papers" / source_name

@@ -68,8 +68,12 @@ python distill.py data/paper.pdf --prompt distill_3pv --visualize
 Generiert 1-5 didaktisch wertvolle Bilder mit strukturierten Begleittexten. Die Anzahl wird automatisch an die Komplexität des Papers angepasst.
 
 Output:
-- `output/final/<paper>_<concept>.png` - Visualisierung
-- `output/final/<paper>_<concept>.md` - Begleittext
+```
+output/final/<paper>/
+├── <paper>.md              # Wissensdokument
+├── <concept>.png           # Visualisierung
+└── <concept>.md            # Begleittext
+```
 
 ### Output
 

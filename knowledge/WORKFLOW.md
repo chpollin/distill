@@ -246,9 +246,14 @@ Konzepte werden priorisiert nach:
 
 ### Output
 
-Für jedes Konzept wird generiert:
-- `<paper>_<concept>.png` - Visualisierung
-- `<paper>_<concept>.md` - Begleittext (Description, Key Elements, Reading Guide, Source Context)
+Alle Dateien eines Papers in einem Ordner:
+
+```
+output/final/<paper>/
+├── <paper>.md              # Wissensdokument
+├── <concept>.png           # Visualisierung
+└── <concept>.md            # Begleittext
+```
 
 ---
 
