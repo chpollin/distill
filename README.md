@@ -116,6 +116,27 @@ output/craft/                   # Craft-Mode
 output/papers/<paper_name>/<prompt>_v<n>.md
 ```
 
+## 12 Epistemische Visualisierungsstile
+
+DISTILL nutzt eine systematische Taxonomie von 12 Strukturtypen zur Visualisierung:
+
+| Typ | Zeigt | Anwendung |
+|-----|-------|-----------|
+| `sequence` | Gleichwertige Schritte | Workflows, Prozesse |
+| `quantity` | Proportionen | Mengenvergleiche |
+| `hub` | Zentrum + Peripherie | Kernkonzepte mit Abhängigkeiten |
+| `decomposition` | Teil-Ganzes | Systemarchitektur |
+| `transformation` | Qualitative Wandlung | Lernprozesse, Entwicklung |
+| `grouping` | Kategorien | Typologien, Klassifikationen |
+| `scale` | Überwältigende Masse | Korpusgrößen |
+| `contrast` | Gegensätze | Vorher/Nachher, Dichotomien |
+| `stratigraphy` | Zeitschichten | Historische Epochen |
+| `spiral` | Iteration | Agile Zyklen |
+| `network` | Verbindungen | Akteurskonstellationen |
+| `uncertainty` | Unschärfe | Hypothesen |
+
+Siehe `knowledge/VISUALIZATION-STYLES.md` für vollständige Dokumentation mit Templates und Beispielbildern.
+
 ## DISTILL-3P+V Workflow
 
 Der 3-Perspektiven-Workflow mit Validierung ist die hochqualitative Variante:
@@ -152,20 +173,21 @@ distill/
 ├── config.py           # Konfiguration & API-Setup
 ├── prompts.py          # Prompt-Loader
 ├── prompts/            # Prompt-Templates
-│   ├── distill.md
-│   ├── distill_b.md
-│   ├── distill_c.md
-│   ├── distill_3p_a.md       # Argument-Extraktion
-│   ├── distill_3p_b.md       # Konzept-Extraktion
-│   ├── distill_3p_c.md       # Implikations-Extraktion
-│   ├── distill_3p_synth.md   # Synthese
-│   ├── distill_3p_validate.md # Validierung
-│   ├── distill_3p_finalize.md # Finalisierung
-│   ├── visualize.md          # Bildgenerierung
-│   ├── visualize_select.md   # Konzeptauswahl
-│   ├── visualize_analyze.md  # Fidelity-Analyse
-│   └── visualize_describe.md # Begleittexte
+│   ├── distill*.md           # Extraktions-Prompts
+│   ├── distill_3p_*.md       # 3-Perspektiven-Workflow
+│   ├── visualize*.md         # Visualisierungs-Pipeline
+│   └── structures/           # 12 Strukturtyp-Templates
+│       └── transformation.md # Beispiel-Template
+├── config/             # Python-Konfiguration
+│   └── structure_types.py    # Strukturtyp-Taxonomie
+├── assets/
+│   ├── styles/               # Stil-Referenzen
+│   └── style-references/     # 80+ Beispielbilder (12 Stile)
 ├── knowledge/          # Wissensvault (Projektdokumentation)
+│   ├── WORKFLOW.md           # Kanonische Workflow-Beschreibung
+│   ├── ARCHITECTURE.md       # Tech-Stack, CLI
+│   ├── JOURNAL.md            # Learnings & Entscheidungen
+│   └── VISUALIZATION-STYLES.md # 12-Stile-Handbuch
 ├── data/               # Input: PDFs (nicht versioniert)
 └── output/             # Output: Wissensdokumente (nicht versioniert)
 ```

@@ -327,3 +327,202 @@ Template für Sketchpad-Generierung mit:
 - Visuelle Spezifikation
 - Negative Constraints
 - Generation Prompt Preview
+
+---
+
+## 2024-12-30 (Nachmittag): Integration "12 Stile zur Visualisierung von Wissen"
+
+### Kontext
+
+Umfangreiches Dokument mit systematischer Taxonomie für epistemische Visualisierung analysiert und integriert. Das Dokument enthält ~1.500 Zeilen theoretisch fundierter Anleitungen plus ~80 Vergleichsbilder (OpenAI vs Gemini).
+
+### Neue Dateien
+
+| Pfad | Beschreibung |
+|------|--------------|
+| `knowledge/VISUALIZATION-STYLES.md` | Vollständiges Handbuch der 12 Stile |
+| `config/structure_types.py` | Python-Modul mit Strukturtyp-Taxonomie |
+| `prompts/structures/transformation.md` | Erstes Template (Stil 5) als Proof-of-Concept |
+| `assets/style-references/` | 12 Ordner mit Referenzbildern (OpenAI + Gemini) |
+
+### Learnings
+
+**L24: Epistemische Strukturtypen als geschlossenes Repertoire**
+
+Die 12 Visualisierungsstile decken typische epistemische Operationen ab:
+
+| Nr | Typ | Zeigt | Theoretischer Bezug |
+|----|-----|-------|---------------------|
+| 1 | sequence | Gleichwertige Schritte | Bertin (geordnete Komponenten) |
+| 2 | quantity | Proportionen | ISOTYPE-Methode |
+| 3 | hub | Zentrum + Peripherie | Netzwerktheorie |
+| 4 | decomposition | Teil-Ganzes | Flat-Design-Diagrammatik |
+| 5 | transformation | Qualitative Wandlung | Naturhistorische Illustration |
+| 6 | grouping | Kategorien | Gestalt-Psychologie |
+| 7 | scale | Masse fassbar machen | Datenjournalismus |
+| 8 | contrast | Gegensätze | Visuelle Rhetorik |
+| 9 | stratigraphy | Zeitschichten | Geologische Illustration |
+| 10 | spiral | Iteration | Diagrammatik |
+| 11 | network | Verbindungen | Graphenvisualisierung |
+| 12 | uncertainty | Unschärfe | Fuzzy-Set-Theorie |
+
+**L25: Abgrenzungskriterien als Negative Constraints**
+
+Die Unterscheidungskriterien zwischen ähnlichen Stilen können direkt als Negative Constraints in Prompts übernommen werden:
+
+```
+- sequence vs transformation: "NOT qualitative change, steps are equivalent"
+- hub vs network: "ONE dominant center, NOT distributed"
+- grouping vs decomposition: "elements exist independently, NOT parts of a whole"
+```
+
+**L26: Template-Variablen für Reproduzierbarkeit**
+
+Parametrisierte Prompts mit expliziten Slots erhöhen Reproduzierbarkeit:
+
+```
+Variables:
+- ANZAHL: 3-5
+- STADIEN_BESCHREIBUNG: Metapher (Kristallisation, Klärung, Entfaltung)
+- FARBPALETTE: grau→teal→gold
+```
+
+**L27: Modell-spezifische Workarounds**
+
+Bekannte Probleme und Lösungen aus OpenAI/Gemini-Vergleich:
+
+| Problem | Workaround |
+|---------|------------|
+| Falsche Elementanzahl | "exactly [N], no more, no fewer" |
+| Biologische Metamorphose | Explizite Metapher im Prompt benennen |
+| Dekorative Effekte (Gemini) | "no decorative sparkles or glow effects" |
+| Text trotz Constraint | "absolutely no text, no labels, no letters, no words, no numbers" |
+
+**L28: Visuelle Metaphern domänenunabhängig wählen**
+
+Stil 5 (Transformation) funktioniert mit abstrakten Metaphern:
+- Kristallisation (Ordnungsgewinn)
+- Klärung (Erkenntnisprozess)
+- Entfaltung (Entwicklung)
+- Verdichtung (Fokussierung)
+
+Diese sind domänenunabhängig und verhindern das Zurückfallen auf biologische Metamorphose (Raupe→Schmetterling).
+
+### Engineering
+
+**E7: visualize_select.md erweitert**
+
+Der Prompt enthält jetzt:
+- `structure_type_taxonomy`: Alle 12 Typen mit Entscheidungshilfen
+- `structure_type_reasoning`: Pflichtfeld für Begründung der Stilwahl
+- `CRITICAL DISTINCTIONS`: Abgrenzungskriterien zwischen ähnlichen Typen
+
+**E8: config/structure_types.py erstellt**
+
+Python-Modul mit:
+- Vollständige Typ-Definitionen (suitable_for, not_for, distinguish_from)
+- Hilfsfunktionen: `get_structure_type()`, `suggest_negative_constraints()`
+- Referenzen zu Template-Prompts und Beispielbildern
+
+---
+
+## 2024-12-30 (Abend): Webdev-Tutorial Test
+
+### Kontext
+
+Vollständiger Test der Visualisierungspipeline mit einem Tutorial für HTML/CSS/JavaScript-Einsteiger. Ziel: 3 Folien mit Bildern und Begleittexten generieren.
+
+### Initiale Strukturtyp-Auswahl (revidiert)
+
+**Ursprüngliche Wahl:**
+- HTML: `decomposition` (Teil-Ganzes) - korrekt
+- CSS: `hub` (Selektor als Zentrum) - revidiert
+- JavaScript: `transformation` (Input→Output) - revidiert
+
+**Nach kritischer Revision:**
+
+| Konzept | Initial | Final | Begründung |
+|---------|---------|-------|------------|
+| HTML | decomposition | decomposition | Korrekt: Verschachtelung ist das Kernprinzip |
+| CSS | hub | **contrast** | Vorher/Nachher zeigt den Effekt von CSS besser |
+| JavaScript | transformation | **sequence** | Event-Kette ist intuitiver für Einsteiger |
+
+**L29: Strukturtyp-Wahl aus didaktischer Perspektive**
+
+Bei Einsteiger-Material ist die *intuitivste* Darstellung wichtiger als die *technisch korrekteste*. CSS als Vorher/Nachher-Kontrast zeigt sofort, wozu CSS dient - die Hub-Struktur (Selektor mit Eigenschaften) ist zwar technisch korrekt, aber didaktisch weniger wirksam.
+
+**L30: Sequenz vs. Transformation für Prozesse**
+
+- **Transformation**: Qualitative Wandlung (Input fundamental anders als Output)
+- **Sequenz**: Gleichwertige Schritte in Abfolge
+
+Für JavaScript-Events ist `sequence` besser: Klick → Event → Handler → DOM-Update sind gleichwertige Schritte, nicht qualitative Wandlungen.
+
+### Technische Learnings
+
+**L31: Gemini 3 Pro Image Preview API**
+
+Korrekte Konfiguration für Bildgenerierung:
+
+```python
+from google import genai
+from google.genai import types
+
+client = genai.Client(api_key=API_KEY)
+response = client.models.generate_content(
+    model="gemini-3-pro-image-preview",
+    contents=[prompt],
+    config=types.GenerateContentConfig(
+        response_modalities=["TEXT", "IMAGE"],
+        image_config=types.ImageConfig(
+            aspect_ratio="16:9",
+            image_size="2K"  # Großes K!
+        )
+    )
+)
+```
+
+**L32: API-Besonderheiten**
+
+| Parameter | Korrekt | Falsch |
+|-----------|---------|--------|
+| image_size | `"2K"` (Großbuchstabe) | `"2k"` |
+| Modell | `gemini-3-pro-image-preview` | `gemini-2.0-flash-preview-image-generation` |
+
+**L33: Dotenv-Import-Reihenfolge**
+
+```python
+# KORREKT: dotenv VOR anderen Imports
+from dotenv import load_dotenv
+load_dotenv()
+
+from google import genai  # Jetzt ist GEMINI_API_KEY verfügbar
+```
+
+### Generierte Outputs
+
+```
+output/webdev-intro-beginner/
+├── 01_html_structure.png    # decomposition
+├── 01_html_structure.md
+├── 02_css_styling.png       # contrast
+├── 02_css_styling.md
+├── 03_javascript_events.png # sequence
+├── 03_javascript_events.md
+└── slides_summary.json
+```
+
+### Engineering
+
+**E9: generate_webdev_slides.py erstellt**
+
+Standalone-Skript für Tutorial-Generierung ohne distill.py-Pipeline. Direkte Prompts mit hardkodierten Visualisierungen und Captions.
+
+---
+
+### Nächste Schritte
+
+1. [ ] Alle 12 Template-Prompts erstellen (aktuell nur transformation.md)
+2. [ ] `--structure` CLI-Parameter in distill.py implementieren
+3. [ ] Automatische Strukturtyp-Erkennung testen
+4. [ ] Interaktiven Modus (`--interactive`) implementieren

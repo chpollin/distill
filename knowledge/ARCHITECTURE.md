@@ -119,31 +119,32 @@ distill/
 ├── distill.py          # Hauptanwendung
 ├── config.py           # Konfiguration (Modelle, Pfade)
 ├── prompts.py          # Prompt-Loader
+├── generate_webdev_slides.py  # Standalone Slide-Generator
 ├── prompts/            # Prompt-Templates
-│   ├── distill.md
-│   ├── distill_b.md
-│   ├── distill_c.md
-│   ├── distill_3p_a.md
-│   ├── distill_3p_b.md
-│   ├── distill_3p_c.md
-│   ├── distill_3p_synth.md
-│   ├── distill_3p_validate.md
-│   ├── distill_3p_finalize.md
-│   ├── visualize.md
-│   ├── visualize_select.md
-│   ├── visualize_analyze.md
-│   ├── visualize_describe.md
-│   └── craft_sketchpad.md      # Craft-Mode Sketchpad
+│   ├── distill*.md           # Extraktions-Prompts
+│   ├── distill_3p_*.md       # 3-Perspektiven-Workflow
+│   ├── visualize*.md         # Visualisierungs-Pipeline
+│   ├── craft_sketchpad.md    # Craft-Mode Sketchpad
+│   └── structures/           # 12 Strukturtyp-Templates
+│       └── transformation.md # Proof-of-Concept Template
+├── config/             # Python-Konfiguration
+│   └── structure_types.py    # Strukturtyp-Taxonomie (12 Typen)
 ├── assets/
-│   └── styles/         # Stil-Referenzbilder
-│       ├── kurzgesagt.png
-│       ├── scientific.png
-│       ├── conceptual.png
-│       └── narrative.png
+│   ├── styles/               # Stil-Referenzen (4 Stile)
+│   └── style-references/     # 80+ Beispielbilder (12 Ordner)
+│       ├── stil-01-sequenz/
+│       ├── stil-02-quantität/
+│       ├── ...
+│       └── stil-12-unschärfe/
 ├── knowledge/          # Projektdokumentation (dieser Vault)
+│   ├── WORKFLOW.md
+│   ├── ARCHITECTURE.md
+│   ├── JOURNAL.md
+│   └── VISUALIZATION-STYLES.md  # 12-Stile-Handbuch
 ├── data/               # Input-Dateien (nicht versioniert)
 └── output/             # Generierte Outputs (nicht versioniert)
     ├── final/          # Batch-Visualisierungen
+    ├── papers/         # Wissensdokumente
     ├── sketches/       # Craft-Mode Sketchpads
     └── craft/          # Craft-Mode Bilder
 ```
@@ -170,3 +171,36 @@ distill/
 | Stilkonsistenz | Wissenschaftlich angemessen |
 
 **Fidelity-Scoring:** Score < 4 triggert Regeneration. Strukturelle Fehler wiegen schwerer als ästhetische.
+
+## 12 Epistemische Strukturtypen
+
+Die Visualisierungspipeline nutzt eine systematische Taxonomie von 12 Strukturtypen:
+
+| Nr | Typ | Zeigt | Beispiel |
+|----|-----|-------|----------|
+| 1 | `sequence` | Gleichwertige Schritte | Workflows, Prozesse |
+| 2 | `quantity` | Proportionen | Mengenvergleiche |
+| 3 | `hub` | Zentrum + Peripherie | Kernkonzepte |
+| 4 | `decomposition` | Teil-Ganzes | Systemarchitektur |
+| 5 | `transformation` | Qualitative Wandlung | Lernprozesse |
+| 6 | `grouping` | Kategorien | Typologien |
+| 7 | `scale` | Masse fassbar | Korpusgrößen |
+| 8 | `contrast` | Gegensätze | Vorher/Nachher |
+| 9 | `stratigraphy` | Zeitschichten | Epochen |
+| 10 | `spiral` | Iteration | Agile Zyklen |
+| 11 | `network` | Verbindungen | Akteursnetzwerke |
+| 12 | `uncertainty` | Unschärfe | Hypothesen |
+
+Siehe [[VISUALIZATION-STYLES]] für Details zu jedem Typ mit Template-Prompts und Beispielbildern.
+
+## Standalone-Skripte
+
+### generate_webdev_slides.py
+
+Generiert Folien für Tutorials mit direkten Prompts:
+
+```bash
+python generate_webdev_slides.py
+```
+
+Output: `output/webdev-intro-beginner/` mit PNG-Bildern und Markdown-Captions.

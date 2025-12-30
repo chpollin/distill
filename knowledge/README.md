@@ -9,6 +9,7 @@ Projektdokumentation für DISTILL - Document Intelligence for Scientific Text.
 | [[WORKFLOW]] | Kanonische Workflow-Beschreibung (DISTILL-3P+V) |
 | [[ARCHITECTURE]] | Tech-Stack, CLI, Datenformate |
 | [[JOURNAL]] | Chronologische Learnings und Entscheidungen |
+| [[VISUALIZATION-STYLES]] | 12 epistemische Visualisierungsstile mit Templates |
 
 ## Kernkonzept
 
