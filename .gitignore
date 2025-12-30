@@ -11,7 +11,6 @@ __pycache__/
 .vscode/
 .idea/
 
-# Data (test inputs & generated outputs)
+# Data & generated outputs
 data/
-knowledge/papers/
 output/

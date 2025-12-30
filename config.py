@@ -10,7 +10,6 @@ MODEL_IMAGE = "gemini-3-pro-image-preview"
 
 PATHS = {
     "data": "./data",
-    "knowledge": "./knowledge",
     "output": "./output"
 }
 

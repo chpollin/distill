@@ -3,8 +3,12 @@
 DISTILL - Document Intelligence for Scientific Text to Illustrated Learning Layouts
 
 Usage:
-    python distill.py data/paper.md
-    python distill.py data/paper.md --visualize
+    python distill.py data/paper.pdf                    # PDF multimodal (default)
+    python distill.py data/paper.pdf --mode text       # PDF mit Textextraktion
+    python distill.py data/paper.pdf --mode multimodal # PDF multimodal (explizit)
+    python distill.py data/paper.md                     # Markdown/Text
+    python distill.py data/paper.pdf --visualize       # Mit Visualisierung
+    python distill.py data/paper.pdf --prompt distill_3p  # 3-Perspektiven-Workflow
 """
 
 import argparse
@@ -12,6 +16,7 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
+import fitz  # PyMuPDF
 from google import genai
 from google.genai import types
 
@@ -29,13 +34,94 @@ def load_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def distill_knowledge(client, text: str, prompt_name: str = "distill") -> str:
-    """Destilliere Text zu Wissensdokument."""
-    prompt = load_prompt(prompt_name).format(text=text)
+def load_pdf_multimodal(path: Path) -> types.Part:
+    """Lade PDF als Gemini-Part (multimodal)."""
+    pdf_bytes = path.read_bytes()
+    return types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf")
+
+
+def extract_pdf_text(path: Path) -> str:
+    """Extrahiere Text aus PDF via PyMuPDF."""
+    doc = fitz.open(path)
+    text_parts = []
+    for page in doc:
+        text_parts.append(page.get_text())
+    doc.close()
+    return "\n\n".join(text_parts)
+
+
+def distill_knowledge(client, content, prompt_name: str = "distill", is_multimodal: bool = False) -> str:
+    """Destilliere Text oder PDF zu Wissensdokument."""
+    prompt_template = load_prompt(prompt_name)
+
+    if is_multimodal:
+        # Multimodal: PDF als separater Part
+        prompt_text = prompt_template.replace("{text}", "[See attached PDF]")
+        contents = [content, prompt_text]
+    else:
+        # Text: Prompt mit eingebettetem Text
+        prompt_text = prompt_template.format(text=content)
+        contents = [prompt_text]
 
     response = client.models.generate_content(
         model=config.MODEL_TEXT,
-        contents=[prompt]
+        contents=contents
+    )
+
+    return response.text
+
+
+def extract_metadata(client, content, is_multimodal: bool = False) -> str:
+    """Extrahiere Metadaten (Titel, Autoren, Jahr) aus dem Paper."""
+    metadata_prompt = """Extract the following metadata from this scientific paper:
+- Title: [exact full title]
+- Authors: [all authors, or "First Author et al." if more than 3]
+- Year: [publication year]
+
+Return ONLY these three lines, nothing else."""
+
+    if is_multimodal:
+        contents = [content, metadata_prompt]
+    else:
+        contents = [f"{metadata_prompt}\n\n{content[:5000]}"]  # First 5000 chars for metadata
+
+    response = client.models.generate_content(
+        model=config.MODEL_TEXT,
+        contents=contents
+    )
+    return response.text
+
+
+def distill_3p(client, content, is_multimodal: bool = False) -> str:
+    """3-Perspektiven-Workflow: A (Argument), B (Konzepte), C (Implikationen) + Synthese."""
+
+    # Stufe 0: Metadaten extrahieren
+    print("  [0/4] Extrahiere Metadaten...")
+    metadata = extract_metadata(client, content, is_multimodal)
+
+    # Stufe 1: Drei parallele Extraktionen
+    print("  [1/4] Extrahiere Argument-Struktur (Prompt A)...")
+    extraction_a = distill_knowledge(client, content, "distill_3p_a", is_multimodal)
+
+    print("  [2/4] Extrahiere Konzept-Landschaft (Prompt B)...")
+    extraction_b = distill_knowledge(client, content, "distill_3p_b", is_multimodal)
+
+    print("  [3/4] Extrahiere Implikationen (Prompt C)...")
+    extraction_c = distill_knowledge(client, content, "distill_3p_c", is_multimodal)
+
+    # Stufe 2: Synthese
+    print("  [4/4] Synthese der drei Perspektiven...")
+    synth_template = load_prompt("distill_3p_synth")
+    synth_prompt = synth_template.format(
+        metadata=metadata,
+        extraction_a=extraction_a,
+        extraction_b=extraction_b,
+        extraction_c=extraction_c
+    )
+
+    response = client.models.generate_content(
+        model=config.MODEL_TEXT,
+        contents=[synth_prompt]
     )
 
     return response.text
@@ -97,7 +183,7 @@ def get_next_version(paper_dir: Path, prompt_name: str) -> int:
 
 def save_knowledge(content: str, source_name: str, prompt_name: str = "distill") -> Path:
     """Speichere Wissensdokument in Paper-Unterordner."""
-    paper_dir = Path(config.PATHS["knowledge"]) / "papers" / source_name
+    paper_dir = Path(config.PATHS["output"]) / "papers" / source_name
     paper_dir.mkdir(parents=True, exist_ok=True)
 
     version = get_next_version(paper_dir, prompt_name)
@@ -120,8 +206,10 @@ def save_image(image_data: bytes, name: str) -> Path:
 
 def main():
     parser = argparse.ArgumentParser(description="DISTILL - Wissensextraktion und Visualisierung")
-    parser.add_argument("input", type=Path, help="Input-Datei (Markdown oder Text)")
+    parser.add_argument("input", type=Path, help="Input-Datei (PDF, Markdown oder Text)")
     parser.add_argument("--prompt", type=str, default="distill", help="Prompt-Name (default: distill)")
+    parser.add_argument("--mode", type=str, choices=["multimodal", "text"], default="multimodal",
+                        help="PDF-Modus: multimodal (mit Layout/Bildern) oder text (nur extrahierter Text)")
     parser.add_argument("--visualize", action="store_true", help="Auch Visualisierung generieren")
     parser.add_argument("--concept", type=str, help="Spezifisches Konzept visualisieren")
 
@@ -131,14 +219,31 @@ def main():
         print(f"Fehler: {args.input} nicht gefunden")
         sys.exit(1)
 
-    print(f"Lade: {args.input}")
-    text = load_text(args.input)
+    is_pdf = args.input.suffix.lower() == ".pdf"
+    is_multimodal = is_pdf and args.mode == "multimodal"
+
+    if is_pdf:
+        if args.mode == "multimodal":
+            print(f"Lade: {args.input} (PDF multimodal)")
+            content = load_pdf_multimodal(args.input)
+        else:
+            print(f"Lade: {args.input} (PDF -> Textextraktion)")
+            content = extract_pdf_text(args.input)
+            print(f"Extrahiert: {len(content)} Zeichen")
+    else:
+        print(f"Lade: {args.input} (Text)")
+        content = load_text(args.input)
 
     print("Initialisiere Gemini Client...")
     client = init_client()
 
-    print(f"Destilliere Wissen mit Prompt '{args.prompt}'...")
-    knowledge = distill_knowledge(client, text, args.prompt)
+    # Workflow-Auswahl
+    if args.prompt == "distill_3p":
+        print("Starte 3-Perspektiven-Workflow...")
+        knowledge = distill_3p(client, content, is_multimodal=is_multimodal)
+    else:
+        print(f"Destilliere Wissen mit Prompt '{args.prompt}'...")
+        knowledge = distill_knowledge(client, content, args.prompt, is_multimodal=is_multimodal)
 
     source_name = args.input.stem
     output_path = save_knowledge(knowledge, source_name, args.prompt)

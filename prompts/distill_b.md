@@ -33,8 +33,9 @@ domain: [1-3 words]
 Or 3-4 sentences flowing text if logic is not linear.
 
 # Evidence
-- [Evidence type]: [What was shown? Strength of support?]
-[Only the strongest evidence]
+- [Evidence type]: [Specific finding with quantities, named datasets, or cited cases]
+- [Evidence type]: [Specific finding]
+Minimum 2 evidence items. Must include specific numbers, names, or case studies where the source provides them. Avoid abstract summaries like "synthesis of literature".
 
 # Limitations
 [1-2 sentences: Open questions, assumptions, what is not accomplished]
@@ -62,9 +63,9 @@ Core thesis is exactly one sentence.
 Argument chain is comprehensible without prior knowledge.
 
 Do not use:
-- "The paper describes...", "The authors argue..." → Formulate directly
+- "The paper describes...", "The authors argue..." -> Formulate directly
 - Evaluative adjectives: "important", "significant", "novel"
-- Concrete numbers or data from the original
+- Vague evidence like "comprehensive analysis" or "literature review" without specifics
 - Lists without relations between points
 </constraints>
 
