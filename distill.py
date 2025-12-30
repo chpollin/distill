@@ -98,22 +98,40 @@ Return ONLY these three lines, nothing else."""
     return response.text
 
 
-def distill_3p(client, content, is_multimodal: bool = False) -> str:
+def save_step(content: str, step_name: str, paper_name: str) -> Path:
+    """Speichere Zwischen-Output in steps/ Unterordner."""
+    steps_dir = Path(config.PATHS["output"]) / "papers" / paper_name / "steps"
+    steps_dir.mkdir(parents=True, exist_ok=True)
+
+    step_path = steps_dir / f"{step_name}.md"
+    step_path.write_text(content, encoding="utf-8")
+    return step_path
+
+
+def distill_3p(client, content, is_multimodal: bool = False, paper_name: str = None) -> str:
     """3-Perspektiven-Workflow: A (Argument), B (Konzepte), C (Implikationen) + Synthese."""
 
     # Stufe 0: Metadaten extrahieren
     print("  [0/4] Extrahiere Metadaten...")
     metadata = extract_metadata(client, content, is_multimodal)
+    if paper_name:
+        save_step(metadata, "0_metadata", paper_name)
 
     # Stufe 1: Drei parallele Extraktionen
     print("  [1/4] Extrahiere Argument-Struktur (Prompt A)...")
     extraction_a = distill_knowledge(client, content, "distill_3p_a", is_multimodal)
+    if paper_name:
+        save_step(extraction_a, "1_extraction_a_argument", paper_name)
 
     print("  [2/4] Extrahiere Konzept-Landschaft (Prompt B)...")
     extraction_b = distill_knowledge(client, content, "distill_3p_b", is_multimodal)
+    if paper_name:
+        save_step(extraction_b, "2_extraction_b_concepts", paper_name)
 
     print("  [3/4] Extrahiere Implikationen (Prompt C)...")
     extraction_c = distill_knowledge(client, content, "distill_3p_c", is_multimodal)
+    if paper_name:
+        save_step(extraction_c, "3_extraction_c_implications", paper_name)
 
     # Stufe 2: Synthese
     print("  [4/4] Synthese der drei Perspektiven...")
@@ -129,26 +147,37 @@ def distill_3p(client, content, is_multimodal: bool = False) -> str:
         model=config.MODEL_TEXT,
         contents=[synth_prompt]
     )
+    synthesis = response.text
+    if paper_name:
+        save_step(synthesis, "4_synthesis", paper_name)
 
-    return response.text
+    return synthesis
 
 
-def distill_3pv(client, content, is_multimodal: bool = False, text_content: str = None) -> str:
+def distill_3pv(client, content, is_multimodal: bool = False, text_content: str = None, paper_name: str = None) -> str:
     """3-Perspektiven-Workflow mit Validierung: A, B, C + Synthese + Validierung + Finalisierung."""
 
     # Stufe 0: Metadaten extrahieren
     print("  [0/6] Extrahiere Metadaten...")
     metadata = extract_metadata(client, content, is_multimodal)
+    if paper_name:
+        save_step(metadata, "0_metadata", paper_name)
 
     # Stufe 1: Drei parallele Extraktionen
     print("  [1/6] Extrahiere Argument-Struktur (Prompt A)...")
     extraction_a = distill_knowledge(client, content, "distill_3p_a", is_multimodal)
+    if paper_name:
+        save_step(extraction_a, "1_extraction_a_argument", paper_name)
 
     print("  [2/6] Extrahiere Konzept-Landschaft (Prompt B)...")
     extraction_b = distill_knowledge(client, content, "distill_3p_b", is_multimodal)
+    if paper_name:
+        save_step(extraction_b, "2_extraction_b_concepts", paper_name)
 
     print("  [3/6] Extrahiere Implikationen (Prompt C)...")
     extraction_c = distill_knowledge(client, content, "distill_3p_c", is_multimodal)
+    if paper_name:
+        save_step(extraction_c, "3_extraction_c_implications", paper_name)
 
     # Stufe 2: Synthese
     print("  [4/6] Synthese der drei Perspektiven...")
@@ -165,6 +194,8 @@ def distill_3pv(client, content, is_multimodal: bool = False, text_content: str 
         contents=[synth_prompt]
     )
     synthesis = response.text
+    if paper_name:
+        save_step(synthesis, "4_synthesis", paper_name)
 
     # Stufe 3: Validierung gegen Quelltext
     print("  [5/6] Validiere gegen Quelltext...")
@@ -183,6 +214,8 @@ def distill_3pv(client, content, is_multimodal: bool = False, text_content: str 
         contents=[validate_prompt]
     )
     validation_report = response.text
+    if paper_name:
+        save_step(validation_report, "5_validation", paper_name)
 
     # Stufe 4: Finalisierung
     print("  [6/6] Finalisiere mit Korrekturen...")
@@ -196,8 +229,11 @@ def distill_3pv(client, content, is_multimodal: bool = False, text_content: str 
         model=config.MODEL_TEXT,
         contents=[finalize_prompt]
     )
+    final = response.text
+    if paper_name:
+        save_step(final, "6_final", paper_name)
 
-    return response.text
+    return final
 
 
 def generate_image_prompt(client, concept: str, context: str) -> str:
@@ -704,6 +740,24 @@ DO NOT include any text labels in the image.
 
     # Extrahiere Bild
     image_data = None
+    if response is None:
+        print("      Fehler: Keine API-Response erhalten")
+        return {"status": "error", "sketchpad": str(sketchpad_path)}
+
+    if not hasattr(response, 'parts') or response.parts is None:
+        # Versuche Fehlerdetails zu extrahieren
+        error_msg = "Unbekannter Fehler"
+        if hasattr(response, 'prompt_feedback'):
+            error_msg = f"Prompt Feedback: {response.prompt_feedback}"
+        elif hasattr(response, 'candidates') and response.candidates:
+            candidate = response.candidates[0]
+            if hasattr(candidate, 'finish_reason'):
+                error_msg = f"Finish Reason: {candidate.finish_reason}"
+            if hasattr(candidate, 'safety_ratings'):
+                error_msg += f", Safety: {candidate.safety_ratings}"
+        print(f"      Fehler: Keine Parts in Response - {error_msg}")
+        return {"status": "error", "sketchpad": str(sketchpad_path)}
+
     for part in response.parts:
         if part.inline_data is not None:
             image_data = part.inline_data.data
@@ -751,33 +805,24 @@ DO NOT include any text labels in the image.
 
 
 def main():
-    parser = argparse.ArgumentParser(description="DISTILL - Wissensextraktion und Visualisierung")
-    subparsers = parser.add_subparsers(dest="command", help="Verfuegbare Befehle")
+    # Pruefe ob erstes Argument "craft" ist - dann Craft-Modus
+    if len(sys.argv) > 1 and sys.argv[1] == "craft":
+        # Craft-Mode Parser
+        parser = argparse.ArgumentParser(description="DISTILL Craft Mode")
+        parser.add_argument("command", help="craft")
+        parser.add_argument("concept", type=str, help="Name des Konzepts")
+        parser.add_argument("--context", type=str, required=True, help="Kontext/Beschreibung des Konzepts")
+        parser.add_argument("--idea", type=str, required=True, help="Deine Visualisierungsidee")
+        parser.add_argument("--ref", type=Path, help="Pfad zu Referenzbild fuer Stil")
+        parser.add_argument("--auto", action="store_true", help="Automatisch freigeben ohne Nachfrage")
 
-    # Craft subcommand
-    craft_parser = subparsers.add_parser("craft", help="Interaktive Einzelkonzept-Visualisierung")
-    craft_parser.add_argument("concept", type=str, help="Name des Konzepts")
-    craft_parser.add_argument("--context", type=str, required=True, help="Kontext/Beschreibung des Konzepts")
-    craft_parser.add_argument("--idea", type=str, required=True, help="Deine Visualisierungsidee")
-    craft_parser.add_argument("--ref", type=Path, help="Pfad zu Referenzbild fuer Stil")
-    craft_parser.add_argument("--auto", action="store_true", help="Automatisch freigeben ohne Nachfrage")
+        args = parser.parse_args()
 
-    # Default: distill command (kein expliziter subparser fuer Rueckwaertskompatibilitaet)
-    parser.add_argument("input", type=Path, nargs="?", help="Input-Datei (PDF, Markdown oder Text)")
-    parser.add_argument("--prompt", type=str, default="distill", help="Prompt-Name (default: distill)")
-    parser.add_argument("--mode", type=str, choices=["multimodal", "text"], default="multimodal",
-                        help="PDF-Modus: multimodal (mit Layout/Bildern) oder text (nur extrahierter Text)")
-    parser.add_argument("--visualize", action="store_true", help="Automatisch 1-5 Konzepte visualisieren")
-
-    args = parser.parse_args()
-
-    # Handle craft command
-    if args.command == "craft":
         print("Initialisiere Gemini Client...")
         client = init_client()
 
-        ref_path = args.ref if hasattr(args, 'ref') and args.ref else None
-        auto_approve = args.auto if hasattr(args, 'auto') else False
+        ref_path = args.ref if args.ref else None
+        auto_approve = args.auto
 
         result = craft_visualization(
             client=client,
@@ -792,10 +837,15 @@ def main():
             print(f"\nErgebnis: {result['image']}")
         return
 
-    # Default distill workflow
-    if not args.input:
-        parser.print_help()
-        sys.exit(1)
+    # Standard Distill-Modus
+    parser = argparse.ArgumentParser(description="DISTILL - Wissensextraktion und Visualisierung")
+    parser.add_argument("input", type=Path, help="Input-Datei (PDF, Markdown oder Text)")
+    parser.add_argument("--prompt", type=str, default="distill", help="Prompt-Name (default: distill)")
+    parser.add_argument("--mode", type=str, choices=["multimodal", "text"], default="multimodal",
+                        help="PDF-Modus: multimodal (mit Layout/Bildern) oder text (nur extrahierter Text)")
+    parser.add_argument("--visualize", action="store_true", help="Automatisch 1-5 Konzepte visualisieren")
+
+    args = parser.parse_args()
 
     if not args.input.exists():
         print(f"Fehler: {args.input} nicht gefunden")
@@ -826,18 +876,18 @@ def main():
     print("Initialisiere Gemini Client...")
     client = init_client()
 
+    source_name = args.input.stem
+
     # Workflow-Auswahl
     if args.prompt == "distill_3pv":
         print("Starte 3-Perspektiven-Workflow mit Validierung (6 API-Calls)...")
-        knowledge = distill_3pv(client, content, is_multimodal=is_multimodal, text_content=text_content)
+        knowledge = distill_3pv(client, content, is_multimodal=is_multimodal, text_content=text_content, paper_name=source_name)
     elif args.prompt == "distill_3p":
         print("Starte 3-Perspektiven-Workflow (4 API-Calls)...")
-        knowledge = distill_3p(client, content, is_multimodal=is_multimodal)
+        knowledge = distill_3p(client, content, is_multimodal=is_multimodal, paper_name=source_name)
     else:
         print(f"Destilliere Wissen mit Prompt '{args.prompt}'...")
         knowledge = distill_knowledge(client, content, args.prompt, is_multimodal=is_multimodal)
-
-    source_name = args.input.stem
     output_path = save_knowledge(knowledge, source_name, args.prompt)
     print(f"Wissensdokument gespeichert: {output_path}")
 
