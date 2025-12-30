@@ -111,3 +111,54 @@ Synthese-Prompt erhält jetzt explizites `{metadata}` Feld. Metadaten werden in 
 **E2: Evidenz-Constraint für distill_b**
 
 Regel ergänzt: "Minimum 2 evidence items. Must include specific numbers, names, or case studies."
+
+---
+
+### DISTILL-3P+V Implementierung
+
+**Entscheidung: Validierungsstufe hinzugefügt**
+
+Der 3P-Workflow wurde um zwei Stufen erweitert:
+- Stufe 3: Validierung gegen Quelltext
+- Stufe 4: Finalisierung mit Korrekturen
+
+Neue Prompts: `distill_3p_validate.md`, `distill_3p_finalize.md`
+
+**L9: Validierung entfernt Halluzinationen**
+
+Im Test mit Alvarez_2024_Policy.pdf wurden 11-14 Korrekturen pro Durchlauf angewendet. Typische Entfernungen:
+- Unverifiable Statistiken (z.B. "21% XAI statistic")
+- Fehlzuschreibungen (z.B. "Ground truth myth")
+- Überinterpretationen in Argument Chain
+
+**L10: Konfidenz-Abstufung ist informativ**
+
+"Medium confidence" mit Begründung ist nützlicher als "high" ohne Begründung. Der Workflow stuft automatisch herab, wenn Quelltext-Ausschnitt unvollständig.
+
+**L11: Traceability durch Validation Notes**
+
+Jede Änderung wird dokumentiert:
+- Corrections applied: [Anzahl]
+- Additions: [Liste]
+- Removals: [Liste]
+- Remaining uncertainties: [Liste]
+
+**L12: Finale Dokumente in separatem Ordner**
+
+Output-Pfad für `distill_3pv`: `output/final/<paper_name>.md`
+
+Keine Versionierung, da validierte Dokumente als kanonisch gelten. Erleichtert das Auffinden fertiger Extrakte.
+
+---
+
+### Workflow-Vergleich (Final)
+
+| Kriterium | distill | distill_b | distill_c | distill_3p | distill_3pv |
+|-----------|---------|-----------|-----------|------------|-------------|
+| API-Calls | 1 | 1 | 1 | 4 | 6 |
+| Konzept-Taxonomie | Nein | Nein | Ja | Ja | Ja |
+| Evidenz-Verifizierung | Nein | Nein | Nein | Nein | Ja |
+| Konfidenz-Begründung | Nein | Nein | Nein | Ja | Ja |
+| Traceability | Nein | Nein | Nein | Nein | Ja |
+
+**Empfehlung**: `distill_3pv` für finale Extrakte, `distill_c` für schnelle Einzeldurchläufe.

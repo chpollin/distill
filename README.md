@@ -22,6 +22,19 @@ cp .env.example .env
 
 ## Usage
 
+### Schnellstart
+
+```bash
+# Beste Qualität (6 API-Calls, mit Validierung)
+python distill.py data/paper.pdf --prompt distill_3pv
+
+# Gute Qualität (4 API-Calls)
+python distill.py data/paper.pdf --prompt distill_3p
+
+# Schnell (1 API-Call)
+python distill.py data/paper.pdf --prompt distill_c
+```
+
 ### PDF-Verarbeitung
 
 ```bash
@@ -34,20 +47,13 @@ python distill.py data/paper.pdf --mode text
 
 ### Prompt-Varianten
 
-| Prompt | Beschreibung | Befehl |
-|--------|--------------|--------|
-| `distill` | Original Markdown-Stil | `--prompt distill` |
-| `distill_b` | Kompakter XML-Stil | `--prompt distill_b` |
-| `distill_c` | Mit Konzept-Taxonomie + Evidence-Constraints | `--prompt distill_c` |
-| `distill_3p` | 3-Perspektiven-Synthese (empfohlen) | `--prompt distill_3p` |
-
-```bash
-# Empfohlen: 3-Perspektiven-Workflow
-python distill.py data/paper.pdf --prompt distill_3p
-
-# Schneller Einzelprompt
-python distill.py data/paper.pdf --prompt distill_c
-```
+| Prompt | API-Calls | Beschreibung |
+|--------|-----------|--------------|
+| `distill_3pv` | 6 | 3P + Validierung + Finalisierung **(empfohlen)** |
+| `distill_3p` | 4 | 3-Perspektiven-Synthese |
+| `distill_c` | 1 | Konzept-Taxonomie + Evidence-Constraints |
+| `distill_b` | 1 | Kompakter XML-Stil |
+| `distill` | 1 | Original Markdown-Stil |
 
 ### Mit Visualisierung
 
@@ -62,46 +68,61 @@ python distill.py data/paper.pdf --visualize --concept "Causal Fairness"
 output/papers/<paper_name>/<prompt>_v<n>.md
 ```
 
+## DISTILL-3P+V Workflow
+
+Der 3-Perspektiven-Workflow mit Validierung ist die hochqualitative Variante:
+
+```
+              ┌── Prompt A (Argument) ──┐
+PDF ──────────┼── Prompt B (Konzepte) ──┼── Synthese
+              └── Prompt C (Implikat.) ─┘
+                                            │
+                                            ▼
+                              Validierung gegen Quelltext
+                                            │
+                                            ▼
+                              Finalisierung mit Korrekturen
+                                            │
+                                            ▼
+                                   Wissensdokument
+```
+
+**Features:**
+- Konfidenzmarkierung durch Übereinstimmungsprüfung
+- Systematische Konzept-Taxonomie (criticized/proposed/utilized)
+- Quelltext-Validierung (✓ verified / ⚠ partial / ✗ not found)
+- Automatische Korrektur und Gap-Filling
+- Konflikt-Dokumentation bei Widersprüchen
+
+Siehe `knowledge/WORKFLOW.md` für Details.
+
 ## Projektstruktur
 
 ```
 distill/
-├── distill.py      # Hauptskript
-├── config.py       # Konfiguration & API-Setup
-├── prompts.py      # Prompt-Loader
-├── prompts/        # Prompt-Templates
+├── distill.py          # Hauptskript
+├── config.py           # Konfiguration & API-Setup
+├── prompts.py          # Prompt-Loader
+├── prompts/            # Prompt-Templates
 │   ├── distill.md
 │   ├── distill_b.md
 │   ├── distill_c.md
-│   ├── distill_3p_a.md   # Argument-Extraktion
-│   ├── distill_3p_b.md   # Konzept-Extraktion
-│   ├── distill_3p_c.md   # Implikations-Extraktion
-│   └── distill_3p_synth.md
-├── knowledge/      # Wissensvault (Projektdokumentation)
-├── data/           # Input: PDFs
-└── output/         # Output: Wissensdokumente, Bilder
+│   ├── distill_3p_a.md       # Argument-Extraktion
+│   ├── distill_3p_b.md       # Konzept-Extraktion
+│   ├── distill_3p_c.md       # Implikations-Extraktion
+│   ├── distill_3p_synth.md   # Synthese
+│   ├── distill_3p_validate.md # Validierung
+│   └── distill_3p_finalize.md # Finalisierung
+├── knowledge/          # Wissensvault (Projektdokumentation)
+├── data/               # Input: PDFs (nicht versioniert)
+└── output/             # Output: Wissensdokumente (nicht versioniert)
 ```
-
-## DISTILL-3P Workflow
-
-Der 3-Perspektiven-Workflow extrahiert drei komplementäre Aspekte und synthetisiert sie regelbasiert:
-
-```
-PDF ──┬── Prompt A (Argument) ──┐
-      ├── Prompt B (Konzepte) ──┼── Synthese ── Wissensdokument
-      └── Prompt C (Implikat.) ─┘
-```
-
-Vorteile:
-- Konfidenzmarkierung durch Übereinstimmungsprüfung
-- Systematische Konzept-Taxonomie (criticized/proposed/utilized)
-- Konflikt-Dokumentation bei Widersprüchen
 
 ## Technologie
 
 | Aufgabe | Modell |
 |---------|--------|
-| Textextraktion | gemini-3-flash-preview |
+| Wissensextraktion | gemini-3-flash-preview |
 | Bildgenerierung | gemini-3-pro-image-preview |
 
 ## Status
