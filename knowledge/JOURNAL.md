@@ -194,3 +194,76 @@ Macht die Zugehörigkeit zwischen Bild und Text explizit. Alle Dateien eines Pap
 | Traceability | Nein | Nein | Nein | Nein | Ja |
 
 **Empfehlung**: `distill_3pv` für finale Extrakte, `distill_c` für schnelle Einzeldurchläufe.
+
+---
+
+### Visualisierungsqualität: Ehrliche Evaluation
+
+**Problem entdeckt:** Die Fidelity-Analyse vergab Scores von 4/5 für Bilder mit fundamentalen Strukturfehlern.
+
+**Beispiel: NoBIAS Architecture (Alvarez_2024)**
+- Quelle beschreibt: "Legal Layer AND Bias Management Layer" (parallele Architektur)
+- Generiert: "Stage 1 → Stage 2 → Stage 3" (sequenzielle Phasen)
+- Analyse-Score: 4/5 (sollte 1-2 sein)
+
+**L17: Strukturfehler sind fundamentaler als ästhetische Mängel**
+
+Ein Bild, das parallele Komponenten als sequenzielle Stufen zeigt, verfehlt den epistemischen Kern des Konzepts - unabhängig von Farbwahl oder Stilkonsistenz.
+
+**L18: Negative Constraints sind essentiell**
+
+Positive Anweisungen ("zeige X") reichen nicht. Prompts müssen explizit verbieten:
+- "DO NOT add temporal/developmental stages unless the source describes a process"
+- "DO NOT nest elements unless the source explicitly states containment"
+- "DO NOT show architectural layers as sequential phases"
+
+**L19: Struktur-Taxonomie führt Auswahl**
+
+Konzeptauswahl-Prompt enthält jetzt einen `structure_guide`:
+
+| Struktur | Wann verwenden |
+|----------|----------------|
+| parallel | Elemente koexistieren ohne Hierarchie |
+| nested | Explizite Enthaltensbeziehung im Quelltext |
+| linear-causal | Quelltext beschreibt zeitlichen Prozess |
+| cyclic-causal | Feedback-Loop explizit genannt |
+| juxtaposition | Vergleich/Kontrast zwischen Elementen |
+| network | Wechselseitige Beziehungen |
+
+**L20: Scoring-Rubrik mit Beispielen**
+
+Die Fidelity-Analyse enthält jetzt explizite Beispiele für niedrige Scores:
+- Score 1: "NoBIAS Architecture has Legal Layer AND Bias Management Layer" gezeigt als "Stage 1 → Stage 2 → Stage 3"
+- Score 2: Parallele Konzepte in Container verschachtelt
+
+---
+
+### Implementierte Verbesserungen
+
+**E3: visualize_select.md erweitert**
+
+Neue Felder pro Konzept:
+- `relations`: Explizite Beziehungen aus dem Quelltext
+- `negative_constraints`: Was NICHT visualisiert werden darf
+- `source_quote`: Wörtliches Zitat zur Struktur
+- `visual_type`: architecture/taxonomy/process/contrast/network
+- `structure_guide`: Entscheidungshilfe für Strukturwahl
+
+**E4: visualize.md mit Negativ-Beispielen**
+
+Neuer `<critical_errors_to_avoid>` Block mit 8 expliziten Verboten.
+
+**E5: visualize_analyze.md mit Scoring-Rubrik**
+
+Explizite Beispiele für jeden Score-Level (1-5) mit konkreten Fällen aus der Praxis.
+
+---
+
+### Test: Blogpost "Die Geister, die die Tech-Bros riefen"
+
+Ergebnis nach Verbesserungen:
+- 5 Konzepte ausgewählt
+- 2/5 regeneriert (Score 3 → verbessert)
+- 3/5 beim ersten Versuch akzeptiert (Scores 4-5)
+
+**Beobachtung:** Negative Constraints wirken. "Jagged Intelligence" korrekt als Balkendiagramm-Kontrast statt als Entwicklungsstufen visualisiert.

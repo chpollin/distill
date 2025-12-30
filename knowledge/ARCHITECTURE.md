@@ -122,7 +122,13 @@ distill/
 │   ├── distill_3p_a.md
 │   ├── distill_3p_b.md
 │   ├── distill_3p_c.md
-│   └── distill_3p_synth.md
+│   ├── distill_3p_synth.md
+│   ├── distill_3p_validate.md
+│   ├── distill_3p_finalize.md
+│   ├── visualize.md
+│   ├── visualize_select.md
+│   ├── visualize_analyze.md
+│   └── visualize_describe.md
 ├── knowledge/          # Projektdokumentation (dieser Vault)
 ├── data/               # Input-Dateien (nicht versioniert)
 └── output/             # Generierte Outputs (nicht versioniert)
@@ -143,6 +149,10 @@ distill/
 
 | Kriterium | Beschreibung |
 |-----------|--------------|
+| Strukturelle Treue | Struktur entspricht Quelltext (parallel ≠ sequenziell) |
+| Constraint-Einhaltung | Keine Verletzung der negative_constraints |
 | Inhaltliche Korrektheit | Repräsentiert das Konzept |
 | Visuelle Klarheit | Übersichtlich und verständlich |
 | Stilkonsistenz | Wissenschaftlich angemessen |
+
+**Fidelity-Scoring:** Score < 4 triggert Regeneration. Strukturelle Fehler wiegen schwerer als ästhetische.

@@ -259,6 +259,40 @@ Konzepte werden priorisiert nach:
 4. Didaktischem Wert (beschleunigt Verständnis)
 5. Nicht trivial visualisierbar
 
+### Strukturelle Constraints
+
+Jedes Konzept wird mit zusätzlichen Kontroll-Feldern spezifiziert:
+
+| Feld | Funktion |
+|------|----------|
+| `relations` | Explizite Beziehungen aus dem Quelltext |
+| `negative_constraints` | Was NICHT visualisiert werden darf |
+| `source_quote` | Wörtliches Zitat zur Strukturbestimmung |
+| `visual_type` | architecture/taxonomy/process/contrast/network |
+
+**Structure Guide:**
+
+| Struktur | Bedingung |
+|----------|-----------|
+| parallel | Elemente koexistieren ohne Hierarchie |
+| nested | Explizite Enthaltensbeziehung im Quelltext |
+| linear-causal | Quelltext beschreibt zeitlichen Prozess |
+| cyclic-causal | Feedback-Loop explizit genannt |
+| juxtaposition | Vergleich/Kontrast zwischen Elementen |
+| network | Wechselseitige Beziehungen |
+
+### Fidelity Scoring (streng)
+
+| Score | Kriterium |
+|-------|-----------|
+| 5 | Perfekte strukturelle Übereinstimmung, keine Constraint-Verletzungen |
+| 4 | Kleinere ästhetische Issues, keine strukturellen Fehler |
+| 3 | Ein struktureller Fehler ODER eine Constraint-Verletzung |
+| 2 | Mehrere strukturelle Fehler ODER fundamentale Fehldarstellung |
+| 1 | Komplett falsche Struktur |
+
+**Regeneration bei Score < 4**
+
 ### Output
 
 Alle Dateien eines Papers in einem Ordner:
@@ -290,3 +324,4 @@ output/final/<paper>/
 | 2.0 | 2024-12-30 | +V Validierungsstufe, Finalisierung, Historical Context, Qualitätskriterien |
 | 2.1 | 2024-12-30 | +Visualisierungsstufe (1-5 Bilder mit Begleittexten) |
 | 2.2 | 2024-12-30 | +Refinement-Loop mit Fidelity-Analyse |
+| 2.3 | 2024-12-30 | +Strukturelle Constraints: negative_constraints, source_quote, visual_type, structure_guide |
