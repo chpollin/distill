@@ -1,0 +1,17 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE/Editor
+.claude/
+.vscode/
+.idea/
+
+# Data (test inputs & generated outputs)
+data/
+knowledge/papers/
+output/
