@@ -21,7 +21,7 @@
 
 ```
 Input (PDF/MD) ──┬── Multimodal ── Gemini (PDF direkt)
-                 └── Text ──────── PyMuPDF → Gemini (extrahierter Text)
+                 └── Text ──────── PyMuPDF -> Gemini (extrahierter Text)
                           │
                           ▼
                     Wissensdokument
@@ -34,6 +34,8 @@ Input (PDF/MD) ──┬── Multimodal ── Gemini (PDF direkt)
                   Bild      Begleittext
 ```
 
+Für den detaillierten Workflow siehe [[WORKFLOW]].
+
 ## Datenformate
 
 ### Input
@@ -45,6 +47,8 @@ Input (PDF/MD) ──┬── Multimodal ── Gemini (PDF direkt)
 | Plain Text | Direkt als Text |
 
 ### Output: Wissensdokument
+
+Basis-Format (alle Prompt-Varianten):
 
 ```markdown
 ---
@@ -72,13 +76,15 @@ domain: [Domäne]
 [Methodische/kontextuelle Einschränkungen]
 ```
 
-### Output: DISTILL-3P
+### Output: DISTILL-3P / DISTILL-3P+V
 
 Zusätzliche Felder:
 - `confidence: high | medium | low`
-- `# Implications` (Audience, Recommendations, Open Problems)
+- `# Implications` (Audience, Recommendations, Open Problems, Transfer Domains)
+- `# Historical Context`
 - `# Contested Items`
 - `# Synthesis Notes`
+- `# Validation Notes` (nur 3P+V)
 
 ### Output: Visualisierung
 
@@ -96,30 +102,30 @@ Positional:
   input               PDF, Markdown oder Text-Datei
 
 Options:
-  --prompt PROMPT     Prompt-Variante (distill, distill_b, distill_c, distill_3p)
+  --prompt PROMPT     Prompt-Variante (distill, distill_b, distill_c, distill_3p, distill_3pv)
   --mode MODE         PDF-Modus (multimodal, text)
   --visualize         Bild generieren
   --concept CONCEPT   Spezifisches Konzept visualisieren
 ```
 
-## Kernfunktionen
+## Projektstruktur
 
-```python
-# Wissensextraktion
-distill_knowledge(client, content, prompt_name, is_multimodal) -> str
-
-# 3-Perspektiven-Workflow
-distill_3p(client, content, is_multimodal) -> str
-  ├── extract_metadata(...)
-  ├── distill_knowledge(..., "distill_3p_a", ...)  # Argument
-  ├── distill_knowledge(..., "distill_3p_b", ...)  # Konzepte
-  ├── distill_knowledge(..., "distill_3p_c", ...)  # Implikationen
-  └── synthesize(metadata, a, b, c)
-
-# Visualisierung
-generate_image_prompt(client, concept, context) -> str
-generate_image(client, prompt) -> bytes
-generate_description(client, concept, context) -> str
+```
+distill/
+├── distill.py          # Hauptanwendung
+├── config.py           # Konfiguration (Modelle, Pfade)
+├── prompts.py          # Prompt-Loader
+├── prompts/            # Prompt-Templates
+│   ├── distill.md
+│   ├── distill_b.md
+│   ├── distill_c.md
+│   ├── distill_3p_a.md
+│   ├── distill_3p_b.md
+│   ├── distill_3p_c.md
+│   └── distill_3p_synth.md
+├── knowledge/          # Projektdokumentation (dieser Vault)
+├── data/               # Input-Dateien (nicht versioniert)
+└── output/             # Generierte Outputs (nicht versioniert)
 ```
 
 ## Qualitätskriterien
