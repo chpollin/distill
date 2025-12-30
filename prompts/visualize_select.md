@@ -23,24 +23,39 @@ Skip visualization if:
 <output_format>
 Return a JSON array with 1-5 concept specifications. Each object must have these fields:
 - concept: exact term or phrase from document
-- context: 2-3 sentences explaining what this concept means
-- function: one of representational, organizational, interpretational, transformative
-- structure: one of linear-causal, cyclic-causal, juxtaposition, dissection, zoom, rotation
+- context: 2-3 sentences explaining what this concept means IN THE PAPER'S TERMS
+- relations: array of strings describing how this concept connects to other concepts in the document
+- structure: one of linear-causal, cyclic-causal, juxtaposition, parallel, nested, network
+- visual_type: one of architecture (layered systems), taxonomy (categories), process (flow), contrast (vs comparison), network (connections)
+- negative_constraints: array of things that must NOT be shown (e.g., "no temporal sequence", "not nested")
+- source_quote: one verbatim quote from the document that defines this concept
 - audience: one of novice, intermediate, expert
-- colors: object with element names as keys and hex color codes as values
 - style: one of kurzgesagt, isotype, editorial
 - justification: one sentence explaining why this concept was selected
 
 Return ONLY the JSON array, no additional text or markdown code blocks.
 </output_format>
 
+<structure_guide>
+CRITICAL: Match structure to what the document ACTUALLY says:
+- parallel: Elements exist side-by-side without containment (e.g., "Legal Layer AND Bias Management Layer")
+- nested: One element contains another (e.g., "Bias Management Layer WITHIN Legal Layer")
+- linear-causal: A leads to B leads to C (temporal or causal sequence)
+- cyclic-causal: Feedback loop where C influences A
+- juxtaposition: Explicit contrast between two approaches (e.g., "criticized vs. proposed")
+- network: Multiple interconnected elements without clear hierarchy
+
+DO NOT assume nested structures unless the document explicitly states containment.
+DO NOT assume temporal sequences unless the document describes a process over time.
+</structure_guide>
+
 <constraints>
 - Select concepts that appear explicitly in the document
-- Match function to the concept's role (organizational for taxonomies, interpretational for processes)
-- Match structure to the concept's inherent shape (cyclic for feedback loops, juxtaposition for criticized vs. proposed)
+- The context field must use the paper's own terminology, not generic descriptions
+- The relations field must reference OTHER concepts from the same document
+- The negative_constraints field must prevent common visualization errors
 - Default to "intermediate" audience unless document indicates otherwise
 - Default to "kurzgesagt" style for technical content, "editorial" for humanities
-- Color choices should reflect semantic meaning (warm for human elements, cool for technical)
 - Maximum 5 concepts, minimum 1
 </constraints>
 

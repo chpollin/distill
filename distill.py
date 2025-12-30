@@ -270,16 +270,22 @@ def generate_visualization_prompt(spec: dict) -> str:
     """Baue den Bildgenerierungs-Prompt aus der Spezifikation."""
     prompt_template = load_prompt("visualize")
 
-    # Formatiere Farben als String
-    colors_str = ", ".join([f"{k}: {v}" for k, v in spec.get("colors", {}).items()])
+    # Formatiere Relations als String
+    relations = spec.get("relations", [])
+    relations_str = "\n".join([f"- {r}" for r in relations]) if relations else "None specified"
+
+    # Formatiere Negative Constraints als String
+    neg_constraints = spec.get("negative_constraints", [])
+    neg_str = "\n".join([f"- {c}" for c in neg_constraints]) if neg_constraints else "None"
 
     prompt = prompt_template.format(
         concept=spec.get("concept", ""),
         context=spec.get("context", ""),
-        function=spec.get("function", "representational"),
-        structure=spec.get("structure", "linear-causal"),
+        relations=relations_str,
+        visual_type=spec.get("visual_type", "architecture"),
+        structure=spec.get("structure", "parallel"),
+        negative_constraints=neg_str,
         audience=spec.get("audience", "intermediate"),
-        colors=colors_str,
         style=spec.get("style", "kurzgesagt")
     )
 
@@ -315,13 +321,16 @@ def analyze_visualization(client, image_data: bytes, spec: dict) -> dict:
     """Analysiere generiertes Bild und gib Verbesserungsvorschlaege."""
     prompt_template = load_prompt("visualize_analyze")
 
+    # Formatiere Negative Constraints als String
+    neg_constraints = spec.get("negative_constraints", [])
+    neg_str = "\n".join([f"- {c}" for c in neg_constraints]) if neg_constraints else "None specified"
+
     prompt = prompt_template.format(
         image="[See attached image]",
         concept=spec.get("concept", ""),
         context=spec.get("context", ""),
-        function=spec.get("function", "representational"),
-        structure=spec.get("structure", "linear-causal"),
-        audience=spec.get("audience", "intermediate")
+        structure=spec.get("structure", "parallel"),
+        negative_constraints=neg_str
     )
 
     # Sende Bild + Prompt
@@ -342,7 +351,7 @@ def analyze_visualization(client, image_data: bytes, spec: dict) -> dict:
         return json.loads(response_text)
     except json.JSONDecodeError:
         print(f"    Warnung: Konnte Analysis-JSON nicht parsen")
-        return {"fidelity_score": 3, "issues": [], "improvements": [], "keep": []}
+        return {"fidelity_score": 3, "structural_match": False, "constraint_violations": [], "issues": [], "improvements": [], "keep": []}
 
 
 def generate_refined_visualization_prompt(spec: dict, analysis: dict) -> str:
