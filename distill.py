@@ -10,6 +10,10 @@ Usage:
     python distill.py data/paper.pdf --visualize       # Mit Visualisierung
     python distill.py data/paper.pdf --prompt distill_3p   # 3-Perspektiven-Workflow
     python distill.py data/paper.pdf --prompt distill_3pv  # 3P + Validierung (beste Qualitaet)
+
+    # Craft mode (interactive, single concept):
+    python distill.py craft "Concept Name" --context "..." --idea "..."
+    python distill.py craft "Concept Name" --context "..." --idea "..." --ref assets/style.png
 """
 
 import argparse
@@ -491,15 +495,307 @@ def save_image(image_data: bytes, name: str) -> Path:
     return output_path
 
 
+# ============================================================================
+# CRAFT MODE - Interactive single-concept visualization
+# ============================================================================
+
+def load_image_as_part(path: Path) -> types.Part:
+    """Lade Bild als Gemini-Part."""
+    image_bytes = path.read_bytes()
+    suffix = path.suffix.lower()
+    mime_types = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".gif": "image/gif",
+        ".webp": "image/webp"
+    }
+    mime_type = mime_types.get(suffix, "image/png")
+    return types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+
+
+def generate_sketchpad(client, concept: str, context: str, user_idea: str,
+                       reference_path: Path = None) -> str:
+    """Generiere Sketchpad aus User-Input und optionalem Referenzbild."""
+    prompt_template = load_prompt("craft_sketchpad")
+
+    # Beschreibe Referenzbild falls vorhanden
+    reference_description = "No reference image provided."
+    if reference_path and reference_path.exists():
+        reference_description = f"Reference image provided: {reference_path.name}. Analyze the visual style, color palette, and composition approach."
+
+    prompt = prompt_template.format(
+        concept=concept,
+        context=context,
+        user_idea=user_idea,
+        reference_description=reference_description
+    )
+
+    # Sende mit oder ohne Referenzbild
+    if reference_path and reference_path.exists():
+        image_part = load_image_as_part(reference_path)
+        contents = [image_part, prompt]
+    else:
+        contents = [prompt]
+
+    response = client.models.generate_content(
+        model=config.MODEL_TEXT,
+        contents=contents
+    )
+
+    return response.text
+
+
+def parse_sketchpad(sketchpad_content: str) -> dict:
+    """Parse Sketchpad-Markdown zurueck in Spezifikation."""
+    spec = {
+        "concept": "",
+        "context": "",
+        "structure": "parallel",
+        "negative_constraints": [],
+        "style": "kurzgesagt",
+        "generation_prompt": ""
+    }
+
+    lines = sketchpad_content.split("\n")
+    current_section = None
+
+    for line in lines:
+        line_stripped = line.strip()
+
+        # Extrahiere Konzeptname aus Titel
+        if line_stripped.startswith("# Sketchpad:"):
+            spec["concept"] = line_stripped.replace("# Sketchpad:", "").strip()
+
+        # Erkenne Sektionen
+        elif line_stripped.startswith("### Structure"):
+            current_section = "structure"
+        elif line_stripped.startswith("## Negative Constraints"):
+            current_section = "negative_constraints"
+        elif line_stripped.startswith("## Generation Prompt Preview"):
+            current_section = "generation_prompt"
+        elif line_stripped.startswith("##"):
+            current_section = None
+
+        # Parse Inhalte
+        elif current_section == "structure" and line_stripped and not line_stripped.startswith("#"):
+            # Erste nicht-leere Zeile nach "### Structure"
+            for struct_type in ["parallel", "nested", "linear-causal", "cyclic-causal", "juxtaposition", "network"]:
+                if struct_type in line_stripped.lower():
+                    spec["structure"] = struct_type
+                    break
+            current_section = None
+
+        elif current_section == "negative_constraints" and line_stripped.startswith("- DO NOT:"):
+            constraint = line_stripped.replace("- DO NOT:", "").strip()
+            spec["negative_constraints"].append(constraint)
+
+        elif current_section == "generation_prompt":
+            spec["generation_prompt"] += line + "\n"
+
+    spec["generation_prompt"] = spec["generation_prompt"].strip()
+
+    return spec
+
+
+def save_sketchpad(content: str, concept_name: str) -> Path:
+    """Speichere Sketchpad in sketches/ Ordner."""
+    sketches_dir = Path(config.PATHS["output"]) / "sketches"
+    sketches_dir.mkdir(parents=True, exist_ok=True)
+
+    safe_name = concept_name.replace(" ", "_").replace("/", "-")[:50]
+    sketchpad_path = sketches_dir / f"{safe_name}_sketchpad.md"
+    sketchpad_path.write_text(content, encoding="utf-8")
+
+    return sketchpad_path
+
+
+def craft_visualization(client, concept: str, context: str, user_idea: str,
+                        reference_path: Path = None, auto_approve: bool = False) -> dict:
+    """Interaktiver Craft-Workflow fuer einzelne Konzeptvisualisierung."""
+
+    print(f"\n{'='*60}")
+    print(f"CRAFT MODE: {concept}")
+    print(f"{'='*60}")
+
+    # Schritt 1: Generiere Sketchpad
+    print("\n[1/4] Generiere Sketchpad...")
+    sketchpad = generate_sketchpad(client, concept, context, user_idea, reference_path)
+
+    # Speichere Sketchpad
+    sketchpad_path = save_sketchpad(sketchpad, concept)
+    print(f"      Sketchpad gespeichert: {sketchpad_path}")
+
+    # Zeige Sketchpad
+    print("\n" + "-"*60)
+    print(sketchpad)
+    print("-"*60)
+
+    # Schritt 2: Warte auf Freigabe
+    if not auto_approve:
+        print("\n[2/4] Warte auf Freigabe...")
+        print("      Editiere das Sketchpad bei Bedarf: " + str(sketchpad_path))
+        response = input("      Fortfahren mit Bildgenerierung? [y/n/e(dit)]: ").strip().lower()
+
+        if response == 'n':
+            print("      Abgebrochen.")
+            return {"status": "cancelled", "sketchpad": str(sketchpad_path)}
+        elif response == 'e':
+            print(f"      Bitte editiere: {sketchpad_path}")
+            input("      Druecke Enter wenn fertig...")
+            # Lade editiertes Sketchpad
+            sketchpad = sketchpad_path.read_text(encoding="utf-8")
+    else:
+        print("\n[2/4] Auto-Approve aktiviert, ueberspringe Freigabe...")
+
+    # Schritt 3: Generiere Bild
+    print("\n[3/4] Generiere Bild...")
+
+    # Parse Sketchpad fuer Generation Prompt
+    spec = parse_sketchpad(sketchpad)
+
+    # Nutze Generation Prompt Preview aus Sketchpad, oder baue eigenen
+    if spec["generation_prompt"]:
+        image_prompt = spec["generation_prompt"]
+    else:
+        # Fallback: Baue Prompt aus Spec
+        image_prompt = f"""Create a scientific visualization for: {concept}
+
+Context: {context}
+
+User's vision: {user_idea}
+
+Structure: {spec['structure']}
+
+Style: Clean, minimal, educational illustration similar to Kurzgesagt videos.
+
+DO NOT include any text labels in the image.
+"""
+
+    # Falls Referenzbild vorhanden, haenge es an
+    if reference_path and reference_path.exists():
+        print("      (mit Stil-Referenz)")
+        ref_part = load_image_as_part(reference_path)
+        full_prompt = f"{image_prompt}\n\nIMPORTANT: Match the visual style, color palette, and aesthetic of the attached reference image."
+
+        response = client.models.generate_content(
+            model=config.MODEL_IMAGE,
+            contents=[ref_part, full_prompt],
+            config=types.GenerateContentConfig(
+                response_modalities=["Text", "Image"],
+                image_config=types.ImageConfig(
+                    aspect_ratio=config.IMAGE_CONFIG["aspect_ratio"],
+                    image_size=config.IMAGE_CONFIG["resolution"]
+                )
+            )
+        )
+    else:
+        response = client.models.generate_content(
+            model=config.MODEL_IMAGE,
+            contents=[image_prompt],
+            config=types.GenerateContentConfig(
+                response_modalities=["Text", "Image"],
+                image_config=types.ImageConfig(
+                    aspect_ratio=config.IMAGE_CONFIG["aspect_ratio"],
+                    image_size=config.IMAGE_CONFIG["resolution"]
+                )
+            )
+        )
+
+    # Extrahiere Bild
+    image_data = None
+    for part in response.parts:
+        if part.inline_data is not None:
+            image_data = part.inline_data.data
+            break
+
+    if not image_data:
+        print("      Fehler: Kein Bild generiert")
+        return {"status": "error", "sketchpad": str(sketchpad_path)}
+
+    # Speichere Bild
+    craft_dir = Path(config.PATHS["output"]) / "craft"
+    craft_dir.mkdir(parents=True, exist_ok=True)
+
+    safe_name = concept.replace(" ", "_").replace("/", "-")[:50]
+    image_path = craft_dir / f"{safe_name}.png"
+    image_path.write_bytes(image_data)
+    print(f"      Bild gespeichert: {image_path}")
+
+    # Schritt 4: Generiere Begleittext
+    print("\n[4/4] Generiere Begleittext...")
+
+    desc_spec = {
+        "concept": concept,
+        "context": context,
+        "function": "representational",
+        "structure": spec["structure"],
+        "audience": "intermediate"
+    }
+    description = generate_visualization_description(client, desc_spec)
+
+    desc_path = image_path.with_suffix(".md")
+    desc_path.write_text(description, encoding="utf-8")
+    print(f"      Begleittext gespeichert: {desc_path}")
+
+    print(f"\n{'='*60}")
+    print("CRAFT abgeschlossen!")
+    print(f"{'='*60}")
+
+    return {
+        "status": "success",
+        "sketchpad": str(sketchpad_path),
+        "image": str(image_path),
+        "description": str(desc_path)
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description="DISTILL - Wissensextraktion und Visualisierung")
-    parser.add_argument("input", type=Path, help="Input-Datei (PDF, Markdown oder Text)")
+    subparsers = parser.add_subparsers(dest="command", help="Verfuegbare Befehle")
+
+    # Craft subcommand
+    craft_parser = subparsers.add_parser("craft", help="Interaktive Einzelkonzept-Visualisierung")
+    craft_parser.add_argument("concept", type=str, help="Name des Konzepts")
+    craft_parser.add_argument("--context", type=str, required=True, help="Kontext/Beschreibung des Konzepts")
+    craft_parser.add_argument("--idea", type=str, required=True, help="Deine Visualisierungsidee")
+    craft_parser.add_argument("--ref", type=Path, help="Pfad zu Referenzbild fuer Stil")
+    craft_parser.add_argument("--auto", action="store_true", help="Automatisch freigeben ohne Nachfrage")
+
+    # Default: distill command (kein expliziter subparser fuer Rueckwaertskompatibilitaet)
+    parser.add_argument("input", type=Path, nargs="?", help="Input-Datei (PDF, Markdown oder Text)")
     parser.add_argument("--prompt", type=str, default="distill", help="Prompt-Name (default: distill)")
     parser.add_argument("--mode", type=str, choices=["multimodal", "text"], default="multimodal",
                         help="PDF-Modus: multimodal (mit Layout/Bildern) oder text (nur extrahierter Text)")
     parser.add_argument("--visualize", action="store_true", help="Automatisch 1-5 Konzepte visualisieren")
 
     args = parser.parse_args()
+
+    # Handle craft command
+    if args.command == "craft":
+        print("Initialisiere Gemini Client...")
+        client = init_client()
+
+        ref_path = args.ref if hasattr(args, 'ref') and args.ref else None
+        auto_approve = args.auto if hasattr(args, 'auto') else False
+
+        result = craft_visualization(
+            client=client,
+            concept=args.concept,
+            context=args.context,
+            user_idea=args.idea,
+            reference_path=ref_path,
+            auto_approve=auto_approve
+        )
+
+        if result["status"] == "success":
+            print(f"\nErgebnis: {result['image']}")
+        return
+
+    # Default distill workflow
+    if not args.input:
+        parser.print_help()
+        sys.exit(1)
 
     if not args.input.exists():
         print(f"Fehler: {args.input} nicht gefunden")

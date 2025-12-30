@@ -51,4 +51,19 @@ python distill.py paper.pdf --prompt distill_3p
 
 # Schnell (1 API-Call)
 python distill.py paper.pdf --prompt distill_c
+
+# Mit Batch-Visualisierung (1-5 Bilder)
+python distill.py paper.pdf --prompt distill_3pv --visualize
+
+# Craft Mode (Einzelkonzept, interaktiv)
+python distill.py craft "Konzept" --context "..." --idea "..."
 ```
+
+## Visualisierungsmodi
+
+| Modus | Befehl | Use Case |
+|-------|--------|----------|
+| **Batch** | `--visualize` | Automatisch 1-5 Bilder aus Wissensdokument |
+| **Craft** | `craft` | Einzelnes Konzept mit User-Idee und Sketchpad |
+
+Siehe [[WORKFLOW#Craft Mode]] für Details.

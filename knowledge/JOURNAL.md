@@ -267,3 +267,63 @@ Ergebnis nach Verbesserungen:
 - 3/5 beim ersten Versuch akzeptiert (Scores 4-5)
 
 **Beobachtung:** Negative Constraints wirken. "Jagged Intelligence" korrekt als Balkendiagramm-Kontrast statt als Entwicklungsstufen visualisiert.
+
+---
+
+### Craft Mode: Interaktive Einzelvisualisierung
+
+**Entscheidung: Zwei Visualisierungsmodi**
+
+| Modus | Befehl | Use Case |
+|-------|--------|----------|
+| `visualize` | `--visualize` Flag | Batch-Verarbeitung, Fremd-Papers, automatisch |
+| `craft` | `craft` Subcommand | Eigene Arbeiten, präzise Vorstellungen, interaktiv |
+
+**L21: User-Intent vor Modell-Inferenz**
+
+Der Batch-Modus lässt das Modell entscheiden, wie Konzepte visualisiert werden. Der Craft-Modus invertiert das: Der User beschreibt seine Idee, das Modell interpretiert und strukturiert sie.
+
+**L22: Sketchpad als Dialogdokument**
+
+Das Sketchpad macht implizite Entscheidungen explizit:
+- User Intent (was soll erreicht werden)
+- Interpretation (wie versteht Claude die Idee)
+- Open Questions (wo braucht es Klärung)
+- Visual Specification (konkrete Elemente)
+- Negative Constraints (was vermieden wird)
+- Generation Prompt Preview (was an Gemini geht)
+
+**L23: Referenzbilder im Kontext**
+
+Stil-Referenzen werden nicht analysiert und extrahiert, sondern direkt im Kontext mitgegeben:
+```
+[Referenzbild] + "Match the visual style of this image"
+```
+Das nutzt Geminis multimodale Fähigkeiten direkt statt sie zu umgehen.
+
+---
+
+### Test: Craft vs. Visualize (Sycophancy-Konzept)
+
+**Vergleich:**
+
+| Aspekt | visualize (Batch) | craft (Interaktiv) |
+|--------|-------------------|---------------------|
+| Stil | Generisches Flowchart | Cinematic 3D-Konzeptkunst |
+| Emotionale Wirkung | Neutral, didaktisch | Klaustrophobisch, beunruhigend |
+| Text-Labels | Ja (verletzt oft Constraint) | Nein (wie gewünscht) |
+| User-Idee | Nicht berücksichtigt | Vollständig umgesetzt |
+
+**Beobachtung:** Der Craft-Modus produziert qualitativ hochwertigere Bilder, weil er die User-Intention als Ausgangspunkt nimmt statt sie zu inferieren.
+
+---
+
+### Neue Prompts
+
+**E6: craft_sketchpad.md**
+
+Template für Sketchpad-Generierung mit:
+- User-Input-Interpretation
+- Visuelle Spezifikation
+- Negative Constraints
+- Generation Prompt Preview

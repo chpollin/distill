@@ -96,6 +96,7 @@ Zusätzliche Felder:
 ## CLI-Interface
 
 ```bash
+# Wissensextraktion
 python distill.py <input> [options]
 
 Positional:
@@ -104,8 +105,10 @@ Positional:
 Options:
   --prompt PROMPT     Prompt-Variante (distill, distill_b, distill_c, distill_3p, distill_3pv)
   --mode MODE         PDF-Modus (multimodal, text)
-  --visualize         Bild generieren
-  --concept CONCEPT   Spezifisches Konzept visualisieren
+  --visualize         Batch-Visualisierung (1-5 Bilder)
+
+# Craft Mode (Einzelvisualisierung)
+python distill.py craft <concept> --context "..." --idea "..." [--ref <image>] [--auto]
 ```
 
 ## Projektstruktur
@@ -128,10 +131,14 @@ distill/
 │   ├── visualize.md
 │   ├── visualize_select.md
 │   ├── visualize_analyze.md
-│   └── visualize_describe.md
+│   ├── visualize_describe.md
+│   └── craft_sketchpad.md      # Craft-Mode Sketchpad
 ├── knowledge/          # Projektdokumentation (dieser Vault)
 ├── data/               # Input-Dateien (nicht versioniert)
 └── output/             # Generierte Outputs (nicht versioniert)
+    ├── final/          # Batch-Visualisierungen
+    ├── sketches/       # Craft-Mode Sketchpads
+    └── craft/          # Craft-Mode Bilder
 ```
 
 ## Qualitätskriterien

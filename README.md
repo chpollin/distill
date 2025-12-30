@@ -55,7 +55,7 @@ python distill.py data/paper.pdf --mode text
 | `distill_b` | 1 | Kompakter XML-Stil |
 | `distill` | 1 | Original Markdown-Stil |
 
-### Mit Visualisierung
+### Mit Visualisierung (Batch)
 
 ```bash
 # Visualisierung aus finalem Wissensdokument
@@ -67,12 +67,42 @@ python distill.py data/paper.pdf --prompt distill_3pv --visualize
 
 Generiert 1-5 didaktisch wertvolle Bilder mit strukturierten Begleittexten. Die Anzahl wird automatisch an die Komplexität des Papers angepasst.
 
+### Craft Mode (Interaktiv)
+
+```bash
+# Einzelkonzept mit eigener Idee visualisieren
+python distill.py craft "Konzeptname" \
+    --context "Beschreibung des Konzepts" \
+    --idea "Deine Visualisierungsidee"
+
+# Mit Stil-Referenzbild
+python distill.py craft "Konzeptname" \
+    --context "..." --idea "..." \
+    --ref assets/style.png
+
+# Automatische Freigabe (ohne Nachfrage)
+python distill.py craft "Konzeptname" --context "..." --idea "..." --auto
+```
+
+Der Craft-Modus erzeugt ein editierbares Sketchpad vor der Bildgenerierung:
+- Interpretation deiner Idee
+- Visuelle Spezifikation (Elemente, Struktur, Komposition)
+- Negative Constraints (was vermieden wird)
+- Generation Prompt Preview
+
 Output:
 ```
-output/final/<paper>/
-├── <paper>.md              # Wissensdokument
-├── <concept>.png           # Visualisierung
-└── <concept>.md            # Begleittext
+output/final/<paper>/           # Batch-Visualisierung
+├── <paper>.md                  # Wissensdokument
+├── <concept>.png               # Visualisierung
+└── <concept>.md                # Begleittext
+
+output/sketches/                # Craft-Mode
+└── <concept>_sketchpad.md      # Editierbares Sketchpad
+
+output/craft/                   # Craft-Mode
+├── <concept>.png               # Generiertes Bild
+└── <concept>.md                # Begleittext
 ```
 
 ### Output

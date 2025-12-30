@@ -325,3 +325,76 @@ output/final/<paper>/
 | 2.1 | 2024-12-30 | +Visualisierungsstufe (1-5 Bilder mit Begleittexten) |
 | 2.2 | 2024-12-30 | +Refinement-Loop mit Fidelity-Analyse |
 | 2.3 | 2024-12-30 | +Strukturelle Constraints: negative_constraints, source_quote, visual_type, structure_guide |
+| 3.0 | 2024-12-30 | +Craft Mode: Interaktive Einzelkonzept-Visualisierung mit Sketchpad |
+
+---
+
+## Craft Mode (Alternative zu Stufe 5)
+
+Der Craft-Modus ist eine interaktive Alternative zur automatischen Visualisierung. Er ist für Einzelkonzepte mit präzisen User-Vorstellungen gedacht.
+
+### Workflow
+
+```
+User-Input (Konzept + Idee + Referenzbild?)
+                    │
+                    ▼
+┌─────────────────────────────────────────────────┐
+│            SKETCHPAD-GENERIERUNG                │
+│  User-Idee interpretieren, strukturieren        │
+│  Negative Constraints ableiten                  │
+│  Generation Prompt Preview erstellen            │
+└────────────────────┬────────────────────────────┘
+                     │
+                     ▼
+              [User-Freigabe]
+                     │
+                     ▼
+┌─────────────────────────────────────────────────┐
+│            BILDGENERIERUNG                      │
+│  Mit Sketchpad-Spezifikation                    │
+│  Optional: Referenzbild als Stil-Vorlage        │
+└────────────────────┬────────────────────────────┘
+                     │
+                     ▼
+              Bild + Begleittext
+```
+
+### CLI-Aufruf
+
+```bash
+python distill.py craft "Konzeptname" \
+    --context "Beschreibung" \
+    --idea "Visualisierungsidee" \
+    --ref assets/style.png  # optional
+    --auto                  # optional: ohne Freigabe
+```
+
+### Sketchpad-Struktur
+
+| Sektion | Inhalt |
+|---------|--------|
+| User Intent | Zusammenfassung des Ziels |
+| Interpretation | Wie die Idee auf das Konzept gemappt wird |
+| Open Questions | Klärungsbedarf (falls vorhanden) |
+| Visual Specification | Core Elements, Structure, Composition, Style, Colors |
+| Negative Constraints | Explizite Verbote |
+| Generation Prompt Preview | Finaler Prompt für Gemini |
+
+### Vergleich: visualize vs. craft
+
+| Aspekt | visualize | craft |
+|--------|-----------|-------|
+| Steuerung | Modell entscheidet | User gibt vor |
+| Anzahl | 1-5 automatisch | 1 gezielt |
+| Interaktion | Keine | Sketchpad-Freigabe |
+| Referenzbilder | Nein | Ja |
+| Use Case | Batch, Fremd-Papers | Eigene Arbeiten, Präzision |
+
+### Output
+
+```
+output/sketches/<concept>_sketchpad.md
+output/craft/<concept>.png
+output/craft/<concept>.md
+```
