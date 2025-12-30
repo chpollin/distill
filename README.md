@@ -58,9 +58,18 @@ python distill.py data/paper.pdf --mode text
 ### Mit Visualisierung
 
 ```bash
-python distill.py data/paper.pdf --visualize
-python distill.py data/paper.pdf --visualize --concept "Causal Fairness"
+# Visualisierung aus finalem Wissensdokument
+python distill.py output/final/paper.md --visualize
+
+# Kompletter Workflow: Extraktion + Visualisierung
+python distill.py data/paper.pdf --prompt distill_3pv --visualize
 ```
+
+Generiert 1-5 didaktisch wertvolle Bilder mit strukturierten Begleittexten. Die Anzahl wird automatisch an die Komplexität des Papers angepasst.
+
+Output:
+- `output/final/<paper>_<concept>.png` - Visualisierung
+- `output/final/<paper>_<concept>.md` - Begleittext
 
 ### Output
 
@@ -112,7 +121,10 @@ distill/
 │   ├── distill_3p_c.md       # Implikations-Extraktion
 │   ├── distill_3p_synth.md   # Synthese
 │   ├── distill_3p_validate.md # Validierung
-│   └── distill_3p_finalize.md # Finalisierung
+│   ├── distill_3p_finalize.md # Finalisierung
+│   ├── visualize.md          # Bildgenerierung
+│   ├── visualize_select.md   # Konzeptauswahl
+│   └── visualize_describe.md # Begleittexte
 ├── knowledge/          # Wissensvault (Projektdokumentation)
 ├── data/               # Input: PDFs (nicht versioniert)
 └── output/             # Output: Wissensdokumente (nicht versioniert)

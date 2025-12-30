@@ -13,6 +13,7 @@ Usage:
 """
 
 import argparse
+import json
 import sys
 from pathlib import Path
 from datetime import datetime
@@ -240,6 +241,123 @@ def generate_description(client, concept: str, context: str) -> str:
     return response.text
 
 
+def select_visualization_concepts(client, knowledge_document: str) -> list:
+    """Waehle 1-5 Konzepte zur Visualisierung aus dem Wissensdokument."""
+    prompt_template = load_prompt("visualize_select")
+    prompt = prompt_template.format(knowledge_document=knowledge_document)
+
+    response = client.models.generate_content(
+        model=config.MODEL_TEXT,
+        contents=[prompt]
+    )
+
+    # Parse JSON aus Response
+    response_text = response.text.strip()
+    # Entferne Markdown Code-Blocks falls vorhanden
+    if response_text.startswith("```"):
+        lines = response_text.split("\n")
+        response_text = "\n".join(lines[1:-1])
+
+    try:
+        concepts = json.loads(response_text)
+        return concepts[:5]  # Maximum 5
+    except json.JSONDecodeError:
+        print(f"Warnung: Konnte JSON nicht parsen: {response_text[:200]}...")
+        return []
+
+
+def generate_visualization_prompt(spec: dict) -> str:
+    """Baue den Bildgenerierungs-Prompt aus der Spezifikation."""
+    prompt_template = load_prompt("visualize")
+
+    # Formatiere Farben als String
+    colors_str = ", ".join([f"{k}: {v}" for k, v in spec.get("colors", {}).items()])
+
+    prompt = prompt_template.format(
+        concept=spec.get("concept", ""),
+        context=spec.get("context", ""),
+        function=spec.get("function", "representational"),
+        structure=spec.get("structure", "linear-causal"),
+        audience=spec.get("audience", "intermediate"),
+        colors=colors_str,
+        style=spec.get("style", "kurzgesagt")
+    )
+
+    return prompt
+
+
+def generate_visualization_description(client, spec: dict) -> str:
+    """Generiere Begleittext fuer eine Visualisierung."""
+    prompt_template = load_prompt("visualize_describe")
+
+    prompt = prompt_template.format(
+        concept=spec.get("concept", ""),
+        context=spec.get("context", ""),
+        function=spec.get("function", "representational"),
+        structure=spec.get("structure", "linear-causal"),
+        audience=spec.get("audience", "intermediate")
+    )
+
+    response = client.models.generate_content(
+        model=config.MODEL_TEXT,
+        contents=[prompt]
+    )
+
+    return response.text
+
+
+def visualize_knowledge(client, knowledge_document: str, source_name: str) -> list:
+    """Generiere Visualisierungen fuer ein Wissensdokument."""
+    print("\nVisualisierung...")
+    print("  [1/3] Waehle Konzepte zur Visualisierung...")
+    concepts = select_visualization_concepts(client, knowledge_document)
+
+    if not concepts:
+        print("  Keine Konzepte zur Visualisierung gefunden.")
+        return []
+
+    print(f"  {len(concepts)} Konzept(e) ausgewaehlt:")
+    for i, spec in enumerate(concepts, 1):
+        print(f"    {i}. {spec.get('concept', 'Unbekannt')}")
+
+    results = []
+    final_dir = Path(config.PATHS["output"]) / "final"
+    final_dir.mkdir(parents=True, exist_ok=True)
+
+    for i, spec in enumerate(concepts, 1):
+        concept_name = spec.get("concept", f"concept_{i}")
+        safe_name = concept_name.replace(" ", "_").replace("/", "-")[:50]
+
+        print(f"\n  [{i+1}/{len(concepts)+1}] Generiere Bild: {concept_name}...")
+
+        # Baue Prompt und generiere Bild
+        image_prompt = generate_visualization_prompt(spec)
+        image_data = generate_image(client, image_prompt)
+
+        if image_data:
+            image_path = final_dir / f"{source_name}_{safe_name}.png"
+            image_path.write_bytes(image_data)
+            print(f"    Bild gespeichert: {image_path}")
+
+            # Generiere Begleittext
+            print(f"    Generiere Begleittext...")
+            description = generate_visualization_description(client, spec)
+
+            desc_path = image_path.with_suffix(".md")
+            desc_path.write_text(description, encoding="utf-8")
+            print(f"    Begleittext gespeichert: {desc_path}")
+
+            results.append({
+                "concept": concept_name,
+                "image": str(image_path),
+                "description": str(desc_path)
+            })
+        else:
+            print(f"    Fehler: Kein Bild generiert fuer {concept_name}")
+
+    return results
+
+
 def get_next_version(paper_dir: Path, prompt_name: str) -> int:
     """Ermittle nächste Versionsnummer für einen Prompt."""
     existing = list(paper_dir.glob(f"{prompt_name}_v*.md"))
@@ -285,8 +403,7 @@ def main():
     parser.add_argument("--prompt", type=str, default="distill", help="Prompt-Name (default: distill)")
     parser.add_argument("--mode", type=str, choices=["multimodal", "text"], default="multimodal",
                         help="PDF-Modus: multimodal (mit Layout/Bildern) oder text (nur extrahierter Text)")
-    parser.add_argument("--visualize", action="store_true", help="Auch Visualisierung generieren")
-    parser.add_argument("--concept", type=str, help="Spezifisches Konzept visualisieren")
+    parser.add_argument("--visualize", action="store_true", help="Automatisch 1-5 Konzepte visualisieren")
 
     args = parser.parse_args()
 
@@ -335,27 +452,12 @@ def main():
     print(f"Wissensdokument gespeichert: {output_path}")
 
     if args.visualize:
-        concept = args.concept or input("Welches Konzept visualisieren? ")
-
-        print("Generiere Bildprompt...")
-        image_prompt = generate_image_prompt(client, concept, knowledge)
-        print(f"Prompt: {image_prompt[:200]}...")
-
-        print("Generiere Bild...")
-        image_data = generate_image(client, image_prompt)
-
-        if image_data:
-            image_path = save_image(image_data, f"{source_name}_{concept.replace(' ', '_')}")
-            print(f"Bild gespeichert: {image_path}")
-
-            print("Generiere Begleittext...")
-            description = generate_description(client, concept, knowledge)
-
-            desc_path = image_path.with_suffix(".md")
-            desc_path.write_text(description, encoding="utf-8")
-            print(f"Begleittext gespeichert: {desc_path}")
+        # Neuer automatischer Visualisierungs-Workflow
+        results = visualize_knowledge(client, knowledge, source_name)
+        if results:
+            print(f"\n{len(results)} Visualisierung(en) erstellt.")
         else:
-            print("Fehler: Kein Bild generiert")
+            print("\nKeine Visualisierungen erstellt.")
 
 
 if __name__ == "__main__":

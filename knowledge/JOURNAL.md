@@ -151,6 +151,38 @@ Keine Versionierung, da validierte Dokumente als kanonisch gelten. Erleichtert d
 
 ---
 
+### Visualisierungs-Workflow
+
+**Entscheidung: Automatische Konzeptauswahl**
+
+Die Visualisierungsstufe wählt automatisch 1-5 Konzepte basierend auf didaktischem Wert. Keine feste Anzahl - einfache Papers bekommen 1-2 Bilder, komplexe bis zu 5.
+
+**L13: JSON in Prompt-Templates vermeiden**
+
+Bug: Curly Braces `{}` in JSON-Beispielen konfliktierten mit Python `.format()`. Fix: JSON-Format als Prosa beschreiben statt als Code-Block.
+
+**L14: Visualisierungs-Parameter als strukturierte Taxonomie**
+
+Jedes Bild wird durch 6 Parameter spezifiziert:
+- Function (representational/organizational/interpretational/transformative)
+- Structure (linear-causal/cyclic-causal/juxtaposition/dissection/zoom/rotation)
+- Audience (novice/intermediate/expert)
+- Style (kurzgesagt/isotype/editorial)
+- Colors (semantische Zuordnung)
+- Context (2-3 Sätze Hintergrund)
+
+**L15: Begleittexte strukturieren**
+
+Jeder Begleittext enthält: Description, Key Elements, Reading Guide, Source Context. Diese Struktur erzwingt konkrete Beschreibungen statt vager Zusammenfassungen.
+
+**L16: Output-Benennung für Zusammengehörigkeit**
+
+Pattern: `<paper>_<concept>.png` und `<paper>_<concept>.md`
+
+Macht die Zugehörigkeit zwischen Bild und Text explizit. Alle Dateien eines Papers im selben Ordner (`output/final/`).
+
+---
+
 ### Workflow-Vergleich (Final)
 
 | Kriterium | distill | distill_b | distill_c | distill_3p | distill_3pv |

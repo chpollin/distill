@@ -1,8 +1,8 @@
-# DISTILL-3P+V: Multi-Perspektiven-Extraktion mit Validierung
+# DISTILL-3P+V: Multi-Perspektiven-Extraktion mit Validierung und Visualisierung
 
 ## Übersicht
 
-DISTILL-3P+V ist ein vierstufiger Workflow zur Wissensextraktion aus wissenschaftlichen Papers. Drei spezialisierte Prompts extrahieren komplementäre Aspekte, ein Synthese-Prompt führt die Ergebnisse zusammen, ein Validierungs-Prompt prüft gegen den Quelltext, und ein Finalisierungs-Prompt integriert die Korrekturen.
+DISTILL-3P+V ist ein mehrstufiger Workflow zur Wissensextraktion und -visualisierung aus wissenschaftlichen Papers. Drei spezialisierte Prompts extrahieren komplementäre Aspekte, ein Synthese-Prompt führt die Ergebnisse zusammen, ein Validierungs-Prompt prüft gegen den Quelltext, ein Finalisierungs-Prompt integriert die Korrekturen, und optional generiert eine Visualisierungsstufe didaktisch wertvolle Bilder.
 
 **Designprinzipien**
 
@@ -55,7 +55,23 @@ DISTILL-3P+V ist ein vierstufiger Workflow zur Wissensextraktion aus wissenschaf
 ┌─────────────────────┐
 │   Finales DISTILL   │
 │      Dokument       │
-└─────────────────────┘
+└─────────┬───────────┘
+          │ (optional)
+          ▼
+┌─────────────────────────────────────────────────┐
+│            STUFE 5: VISUALISIERUNG              │
+│                  (optional)                     │
+│  ┌───────────┐ ┌───────────┐ ┌───────────┐     │
+│  │  Select   │→│ Generate  │→│ Describe  │     │
+│  │ Concepts  │ │  Images   │ │ Captions  │     │
+│  └───────────┘ └───────────┘ └───────────┘     │
+└────────────────────┬────────────────────────────┘
+                     │
+                     ▼
+          ┌─────────────────────┐
+          │   1-5 Bilder mit    │
+          │   Begleittexten     │
+          └─────────────────────┘
 ```
 
 ---
@@ -197,6 +213,45 @@ Der Finalisierungs-Prompt (`prompts/distill_3p_finalize.md`) integriert die Vali
 
 ---
 
+## Stufe 5: Visualisierung (optional)
+
+Die Visualisierungsstufe generiert 1-5 didaktisch wertvolle Bilder aus dem finalen Wissensdokument.
+
+### Sub-Prompts
+
+| Prompt | Datei | Funktion |
+|--------|-------|----------|
+| Select | `prompts/visualize_select.md` | Wählt 1-5 Konzepte mit höchstem didaktischen Wert |
+| Generate | `prompts/visualize.md` | Generiert Bilder mit Gemini Imagen |
+| Describe | `prompts/visualize_describe.md` | Erstellt strukturierte Begleittexte |
+
+### Visualisierungs-Parameter
+
+| Parameter | Werte |
+|-----------|-------|
+| Function | representational, organizational, interpretational, transformative |
+| Structure | linear-causal, cyclic-causal, juxtaposition, dissection, zoom, rotation |
+| Audience | novice, intermediate, expert |
+| Style | kurzgesagt (technical), isotype (pictograms), editorial (humanities) |
+| Colors | Semantische Farbcodes (warm=human, cool=technical) |
+
+### Auswahl-Kriterien
+
+Konzepte werden priorisiert nach:
+1. Zentralität (Core Thesis, Key Concepts, Argument Chain)
+2. Abstraktheit (Text allein ist unzureichend)
+3. Relationalität (verbindet mehrere Elemente)
+4. Didaktischem Wert (beschleunigt Verständnis)
+5. Nicht trivial visualisierbar
+
+### Output
+
+Für jedes Konzept wird generiert:
+- `<paper>_<concept>.png` - Visualisierung
+- `<paper>_<concept>.md` - Begleittext (Description, Key Elements, Reading Guide, Source Context)
+
+---
+
 ## Bekannte Limitationen
 
 1. **Quelltext-Abhängigkeit**: Validierung ist nur so gut wie der verfügbare Quelltext
@@ -213,3 +268,4 @@ Der Finalisierungs-Prompt (`prompts/distill_3p_finalize.md`) integriert die Vali
 |---------|-------|----------|
 | 1.0 | 2024-12-30 | DISTILL-3P Basisversion |
 | 2.0 | 2024-12-30 | +V Validierungsstufe, Finalisierung, Historical Context, Qualitätskriterien |
+| 2.1 | 2024-12-30 | +Visualisierungsstufe (1-5 Bilder mit Begleittexten) |
