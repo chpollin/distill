@@ -128,6 +128,7 @@ distill/
 │   ├── distill_3p_finalize.md # Finalisierung
 │   ├── visualize.md          # Bildgenerierung
 │   ├── visualize_select.md   # Konzeptauswahl
+│   ├── visualize_analyze.md  # Fidelity-Analyse
 │   └── visualize_describe.md # Begleittexte
 ├── knowledge/          # Wissensvault (Projektdokumentation)
 ├── data/               # Input: PDFs (nicht versioniert)

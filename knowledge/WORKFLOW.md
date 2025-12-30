@@ -215,7 +215,7 @@ Der Finalisierungs-Prompt (`prompts/distill_3p_finalize.md`) integriert die Vali
 
 ## Stufe 5: Visualisierung (optional)
 
-Die Visualisierungsstufe generiert 1-5 didaktisch wertvolle Bilder aus dem finalen Wissensdokument.
+Die Visualisierungsstufe generiert 1-5 didaktisch wertvolle Bilder aus dem finalen Wissensdokument mit automatischer Qualitätskontrolle.
 
 ### Sub-Prompts
 
@@ -223,7 +223,22 @@ Die Visualisierungsstufe generiert 1-5 didaktisch wertvolle Bilder aus dem final
 |--------|-------|----------|
 | Select | `prompts/visualize_select.md` | Wählt 1-5 Konzepte mit höchstem didaktischen Wert |
 | Generate | `prompts/visualize.md` | Generiert Bilder mit Gemini Imagen |
+| Analyze | `prompts/visualize_analyze.md` | Prüft epistemische Treue, gibt Verbesserungen |
 | Describe | `prompts/visualize_describe.md` | Erstellt strukturierte Begleittexte |
+
+### Refinement-Loop
+
+```
+Generate v1 → Analyze → [Fidelity < 4?] → Generate v2 → Describe
+                              ↓ nein
+                           Describe
+```
+
+Pro Bild werden 2-4 API-Calls ausgeführt:
+1. Generate v1
+2. Analyze (Fidelity Score 1-5)
+3. Generate v2 (nur wenn Score < 4)
+4. Describe (mit Critical Notes aus Analysis)
 
 ### Visualisierungs-Parameter
 
@@ -274,3 +289,4 @@ output/final/<paper>/
 | 1.0 | 2024-12-30 | DISTILL-3P Basisversion |
 | 2.0 | 2024-12-30 | +V Validierungsstufe, Finalisierung, Historical Context, Qualitätskriterien |
 | 2.1 | 2024-12-30 | +Visualisierungsstufe (1-5 Bilder mit Begleittexten) |
+| 2.2 | 2024-12-30 | +Refinement-Loop mit Fidelity-Analyse |

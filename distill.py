@@ -286,7 +286,7 @@ def generate_visualization_prompt(spec: dict) -> str:
     return prompt
 
 
-def generate_visualization_description(client, spec: dict) -> str:
+def generate_visualization_description(client, spec: dict, analysis: dict = None) -> str:
     """Generiere Begleittext fuer eine Visualisierung."""
     prompt_template = load_prompt("visualize_describe")
 
@@ -298,6 +298,11 @@ def generate_visualization_description(client, spec: dict) -> str:
         audience=spec.get("audience", "intermediate")
     )
 
+    # Fuege Analysis-Kontext hinzu falls vorhanden
+    if analysis and analysis.get("issues"):
+        issues_text = "\n".join([f"- {issue}" for issue in analysis.get("issues", [])])
+        prompt += f"\n\n## Critical Notes (include in caption)\nThe visualization has these known limitations:\n{issues_text}"
+
     response = client.models.generate_content(
         model=config.MODEL_TEXT,
         contents=[prompt]
@@ -306,10 +311,61 @@ def generate_visualization_description(client, spec: dict) -> str:
     return response.text
 
 
-def visualize_knowledge(client, knowledge_document: str, source_name: str) -> list:
-    """Generiere Visualisierungen fuer ein Wissensdokument."""
+def analyze_visualization(client, image_data: bytes, spec: dict) -> dict:
+    """Analysiere generiertes Bild und gib Verbesserungsvorschlaege."""
+    prompt_template = load_prompt("visualize_analyze")
+
+    prompt = prompt_template.format(
+        image="[See attached image]",
+        concept=spec.get("concept", ""),
+        context=spec.get("context", ""),
+        function=spec.get("function", "representational"),
+        structure=spec.get("structure", "linear-causal"),
+        audience=spec.get("audience", "intermediate")
+    )
+
+    # Sende Bild + Prompt
+    image_part = types.Part.from_bytes(data=image_data, mime_type="image/png")
+
+    response = client.models.generate_content(
+        model=config.MODEL_TEXT,
+        contents=[image_part, prompt]
+    )
+
+    # Parse JSON
+    response_text = response.text.strip()
+    if response_text.startswith("```"):
+        lines = response_text.split("\n")
+        response_text = "\n".join(lines[1:-1])
+
+    try:
+        return json.loads(response_text)
+    except json.JSONDecodeError:
+        print(f"    Warnung: Konnte Analysis-JSON nicht parsen")
+        return {"fidelity_score": 3, "issues": [], "improvements": [], "keep": []}
+
+
+def generate_refined_visualization_prompt(spec: dict, analysis: dict) -> str:
+    """Baue Prompt fuer verbesserte Bildgenerierung mit Analysis-Feedback."""
+    base_prompt = generate_visualization_prompt(spec)
+
+    improvements = analysis.get("improvements", [])
+    keep = analysis.get("keep", [])
+
+    if improvements or keep:
+        base_prompt += "\n\n## CRITICAL REQUIREMENTS"
+        if keep:
+            base_prompt += "\nPRESERVE these elements:\n" + "\n".join([f"- {k}" for k in keep])
+        if improvements:
+            base_prompt += "\nAPPLY these corrections:\n" + "\n".join([f"- {imp}" for imp in improvements])
+
+    return base_prompt
+
+
+def visualize_knowledge(client, knowledge_document: str, source_name: str, refine: bool = True) -> list:
+    """Generiere Visualisierungen fuer ein Wissensdokument mit optionalem Refinement."""
     print("\nVisualisierung...")
-    print("  [1/3] Waehle Konzepte zur Visualisierung...")
+    print("  Waehle Konzepte zur Visualisierung...")
     concepts = select_visualization_concepts(client, knowledge_document)
 
     if not concepts:
@@ -329,32 +385,60 @@ def visualize_knowledge(client, knowledge_document: str, source_name: str) -> li
         concept_name = spec.get("concept", f"concept_{i}")
         safe_name = concept_name.replace(" ", "_").replace("/", "-")[:50]
 
-        print(f"\n  [{i+1}/{len(concepts)+1}] Generiere Bild: {concept_name}...")
+        print(f"\n  Konzept {i}/{len(concepts)}: {concept_name}")
 
-        # Baue Prompt und generiere Bild
+        # Schritt 1: Generiere erstes Bild
+        print(f"    [1/4] Generiere Bild v1...")
         image_prompt = generate_visualization_prompt(spec)
         image_data = generate_image(client, image_prompt)
 
-        if image_data:
-            image_path = paper_dir / f"{safe_name}.png"
-            image_path.write_bytes(image_data)
-            print(f"    Bild gespeichert: {image_path}")
+        if not image_data:
+            print(f"    Fehler: Kein Bild generiert")
+            continue
 
-            # Generiere Begleittext
-            print(f"    Generiere Begleittext...")
-            description = generate_visualization_description(client, spec)
+        analysis = None
 
-            desc_path = image_path.with_suffix(".md")
-            desc_path.write_text(description, encoding="utf-8")
-            print(f"    Begleittext gespeichert: {desc_path}")
+        if refine:
+            # Schritt 2: Analysiere Bild
+            print(f"    [2/4] Analysiere Bild...")
+            analysis = analyze_visualization(client, image_data, spec)
+            fidelity = analysis.get("fidelity_score", 3)
+            print(f"    Fidelity Score: {fidelity}/5")
 
-            results.append({
-                "concept": concept_name,
-                "image": str(image_path),
-                "description": str(desc_path)
-            })
-        else:
-            print(f"    Fehler: Kein Bild generiert fuer {concept_name}")
+            if fidelity < 4 and analysis.get("improvements"):
+                # Schritt 3: Regeneriere mit Feedback
+                print(f"    [3/4] Regeneriere mit {len(analysis.get('improvements', []))} Verbesserungen...")
+                refined_prompt = generate_refined_visualization_prompt(spec, analysis)
+                refined_image = generate_image(client, refined_prompt)
+
+                if refined_image:
+                    image_data = refined_image
+                    print(f"    Verbessertes Bild generiert")
+                else:
+                    print(f"    Warnung: Regenerierung fehlgeschlagen, nutze v1")
+            else:
+                print(f"    [3/4] Keine Verbesserung noetig (Score >= 4)")
+
+        # Speichere finales Bild
+        image_path = paper_dir / f"{safe_name}.png"
+        image_path.write_bytes(image_data)
+        print(f"    Bild gespeichert: {image_path}")
+
+        # Schritt 4: Generiere Begleittext (mit Analysis-Kontext)
+        print(f"    [4/4] Generiere Begleittext...")
+        description = generate_visualization_description(client, spec, analysis)
+
+        desc_path = image_path.with_suffix(".md")
+        desc_path.write_text(description, encoding="utf-8")
+        print(f"    Begleittext gespeichert: {desc_path}")
+
+        results.append({
+            "concept": concept_name,
+            "image": str(image_path),
+            "description": str(desc_path),
+            "fidelity_score": analysis.get("fidelity_score") if analysis else None,
+            "refined": refine and analysis and analysis.get("fidelity_score", 5) < 4
+        })
 
     return results
 
